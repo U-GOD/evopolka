@@ -47,7 +47,7 @@ EvoPolka turns Polkadot Hub into a public, auditable evolution laboratory. Every
 |-------|-----------|
 | Smart Contracts | Solidity 0.8.28 |
 | Virtual Machine | PVM (PolkaVM / RISC-V) via `pallet-revive` |
-| Compiler | `resolc` (Solidity → YUL → LLVM IR → RISC-V) |
+| Compiler | `resolc` (Solidity -> YUL -> LLVM IR -> RISC-V) |
 | Dev Framework | Foundry-Polkadot (`forge`, `cast`, `anvil`) |
 | Dependencies | OpenZeppelin Contracts (ReentrancyGuard, Ownable, Pausable) |
 | Frontend | React + TypeScript + Vite + HTML5 Canvas |
@@ -112,7 +112,7 @@ evopolka/
 - [Foundry-Polkadot](https://github.com/nickytonline/foundryup-polkadot) (forge, cast, anvil with resolc support)
 - [Node.js](https://nodejs.org/) >= 18 (for frontend)
 - [MetaMask](https://metamask.io/) or compatible wallet
-- WSL or Git Bash (Windows users — foundryup-polkadot does not support PowerShell)
+- WSL or Git Bash (Windows users -- foundryup-polkadot does not support PowerShell)
 
 ## Getting Started
 
@@ -174,12 +174,12 @@ Each creature carries a 32-byte genome encoding six core traits:
 
 | Trait | Range | Effect |
 |-------|-------|--------|
-| Speed | 0–255 | Tiles moved per round |
-| Strength | 0–255 | Attack power in combat |
-| Intelligence | 0–255 | Efficiency at foraging food |
-| Aggression | 0–255 | Likelihood of initiating combat |
-| Reproduction Rate | 0–255 | Chance of breeding when energy is sufficient |
-| Defense | 0–255 | Damage reduction in combat |
+| Speed | 0-255 | Tiles moved per round |
+| Strength | 0-255 | Attack power in combat |
+| Intelligence | 0-255 | Efficiency at foraging food |
+| Aggression | 0-255 | Likelihood of initiating combat |
+| Reproduction Rate | 0-255 | Chance of breeding when energy is sufficient |
+| Defense | 0-255 | Damage reduction in combat |
 
 ### Evolution Round
 
@@ -194,11 +194,11 @@ Each call to `runEvolutionRound()` executes five phases:
 ### Arena Lifecycle
 
 ```
-CREATE  →  LOBBY  →  ACTIVE  →  EVOLVING (rounds)  →  FINISHED
-  │          │          │              │                    │
-  │       Players     Arena         Evolution           Winners
-  │       join &      starts        rounds run          claim
-  │       stake DOT                                     rewards
+CREATE  ->  LOBBY  ->  ACTIVE  ->  EVOLVING (rounds)  ->  FINISHED
+  |          |          |              |                    |
+  |       Players     Arena         Evolution           Winners
+  |       join &      starts        rounds run          claim
+  |       stake DOT                                     rewards
 ```
 
 ### Rewards
