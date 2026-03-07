@@ -7,6 +7,7 @@ import {
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {CreatureLib} from "./libraries/CreatureLib.sol";
+import {EvolutionEngine} from "./libraries/EvolutionEngine.sol";
 
 /// @title EvoPolkaArena
 /// @notice Core orchestrator for the on-chain genetic evolution game on Polkadot Hub
@@ -48,6 +49,10 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
     mapping(uint256 => address[]) public arenaPlayers;
     mapping(uint256 => mapping(address => bool)) public hasJoined;
 
+    // Phase tracking
+    mapping(uint256 => uint8) public currentPhase;
+    mapping(uint256 => uint256) public processedIndex;
+
     // Events
     event ArenaCreated(uint256 indexed arenaId, address creator);
     event PlayerJoined(uint256 indexed arenaId, address player);
@@ -57,6 +62,29 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         uint256 creatureId,
         address owner,
         bytes32 genome
+    );
+    event RoundExecuted(
+        uint256 indexed arenaId,
+        uint256 round,
+        uint256 survivors
+    );
+    event RoundPartial(
+        uint256 indexed arenaId,
+        uint256 round,
+        uint256 processed
+    );
+    event CreatureDied(uint256 indexed arenaId, uint256 creatureId);
+    event CombatOccurred(
+        uint256 indexed arenaId,
+        uint256 attacker,
+        uint256 defender,
+        bool attackerWon
+    );
+    event BreedingOccurred(
+        uint256 indexed arenaId,
+        uint256 parent1,
+        uint256 parent2,
+        uint256 child
     );
 
     constructor() Ownable(msg.sender) {}
@@ -119,7 +147,6 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         Arena storage arena = arenas[arenaId];
         require(arena.state == ArenaState.LOBBY, "Not in LOBBY state");
         require(arenaPlayerCount[arenaId] >= 2, "Need at least 2 players");
-        // Only the first player (or creator pattern) can start for now
         require(
             arenaPlayers[arenaId][0] == msg.sender || owner() == msg.sender,
             "Not authorized to start"
@@ -129,6 +156,130 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         arena.lastRoundBlock = block.number;
 
         emit ArenaStarted(arenaId);
+    }
+
+    /// @notice Trigger a new evolution round if rules allow
+    function runEvolutionRound(
+        uint256 arenaId
+    ) external whenNotPaused nonReentrant {
+        Arena storage arena = arenas[arenaId];
+        require(arena.state == ArenaState.ACTIVE, "Not in ACTIVE state");
+        require(
+            block.number >= arena.lastRoundBlock + arena.roundInterval,
+            "Too soon to execute"
+        );
+
+        arena.state = ArenaState.EVOLVING;
+        currentPhase[arenaId] = EvolutionEngine.PHASE_MOVEMENT;
+        processedIndex[arenaId] = 0;
+
+        _processPhases(arenaId);
+    }
+
+    /// @notice Continue a partially executed round if it ran out of gas
+    function continueRound(
+        uint256 arenaId
+    ) external whenNotPaused nonReentrant {
+        Arena storage arena = arenas[arenaId];
+        require(arena.state == ArenaState.EVOLVING, "Not in EVOLVING state");
+
+        _processPhases(arenaId);
+    }
+
+    /// @dev Internal delegator to handle phase state machine
+    function _processPhases(uint256 arenaId) internal {
+        Arena storage arena = arenas[arenaId];
+        uint8 phase = currentPhase[arenaId];
+        uint256 pIdx = processedIndex[arenaId];
+
+        if (phase == EvolutionEngine.PHASE_MOVEMENT) {
+            pIdx = EvolutionEngine.processMovement(
+                arenaId,
+                pIdx,
+                arena.roundNumber
+            );
+            if (pIdx == 0) {
+                phase = EvolutionEngine.PHASE_COMBAT;
+            } else {
+                processedIndex[arenaId] = pIdx;
+                emit RoundPartial(arenaId, arena.roundNumber, pIdx);
+                return;
+            }
+        }
+
+        if (phase == EvolutionEngine.PHASE_COMBAT) {
+            pIdx = EvolutionEngine.processCombat(arenaId, pIdx);
+            if (pIdx == 0) {
+                phase = EvolutionEngine.PHASE_FEEDING;
+            } else {
+                currentPhase[arenaId] = phase;
+                processedIndex[arenaId] = pIdx;
+                emit RoundPartial(arenaId, arena.roundNumber, pIdx);
+                return;
+            }
+        }
+
+        if (phase == EvolutionEngine.PHASE_FEEDING) {
+            pIdx = EvolutionEngine.processFeeding(arenaId, pIdx);
+            if (pIdx == 0) {
+                phase = EvolutionEngine.PHASE_BREEDING;
+            } else {
+                currentPhase[arenaId] = phase;
+                processedIndex[arenaId] = pIdx;
+                emit RoundPartial(arenaId, arena.roundNumber, pIdx);
+                return;
+            }
+        }
+
+        if (phase == EvolutionEngine.PHASE_BREEDING) {
+            pIdx = EvolutionEngine.processBreeding(
+                arenaId,
+                pIdx,
+                arena.mutationRate,
+                arena.gridSize
+            );
+            if (pIdx == 0) {
+                phase = EvolutionEngine.PHASE_CULLING;
+            } else {
+                currentPhase[arenaId] = phase;
+                processedIndex[arenaId] = pIdx;
+                emit RoundPartial(arenaId, arena.roundNumber, pIdx);
+                return;
+            }
+        }
+
+        if (phase == EvolutionEngine.PHASE_CULLING) {
+            pIdx = EvolutionEngine.processCulling(arenaId, pIdx);
+            if (pIdx == 0) {
+                _finalizeRound(arenaId);
+            } else {
+                currentPhase[arenaId] = phase;
+                processedIndex[arenaId] = pIdx;
+                emit RoundPartial(arenaId, arena.roundNumber, pIdx);
+                return;
+            }
+        }
+    }
+
+    /// @dev End the round and check for arena finish conditions
+    function _finalizeRound(uint256 arenaId) internal {
+        Arena storage arena = arenas[arenaId];
+        arena.roundNumber++;
+        arena.lastRoundBlock = block.number;
+        currentPhase[arenaId] = EvolutionEngine.PHASE_NONE;
+        processedIndex[arenaId] = 0;
+
+        if (arena.roundNumber >= arena.maxRounds) {
+            arena.state = ArenaState.FINISHED;
+        } else {
+            arena.state = ArenaState.ACTIVE;
+        }
+
+        emit RoundExecuted(
+            arenaId,
+            arena.roundNumber,
+            arenaCreatureIds[arenaId].length
+        );
     }
 
     /// @dev Spawns a new creature with a random base genome
