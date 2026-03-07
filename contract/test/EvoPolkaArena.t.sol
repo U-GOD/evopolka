@@ -3,7 +3,6 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {EvoPolkaArena} from "../src/EvoPolkaArena.sol";
-import {CreatureLib} from "../src/libraries/CreatureLib.sol";
 
 contract EvoPolkaArenaTest is Test {
     EvoPolkaArena public arena;
@@ -88,8 +87,7 @@ contract EvoPolkaArenaTest is Test {
             uint32 gen,
             bool alive,
 
-        ) = // bytes32 genome
-            arena.arenaCreatures(arenaId, 0);
+        ) = arena.arenaCreatures(arenaId, 0); // bytes32 genome
 
         assertEq(owner, player1);
         assertEq(hp, 100);
