@@ -298,17 +298,35 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
             arena.roundNumber
         );
 
-        if (arena.roundNumber >= arena.maxRounds) {
+        uint256[] storage ids = arenaCreatureIds[arenaId];
+        address lastOwner = address(0);
+        bool multipleOwners = false;
+        uint256 survivorCount = 0;
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            CreatureLib.Creature storage c = arenaCreatures[arenaId][ids[i]];
+            if (c.alive) {
+                survivorCount++;
+                if (lastOwner == address(0)) {
+                    lastOwner = c.owner;
+                } else if (lastOwner != c.owner) {
+                    multipleOwners = true;
+                }
+            }
+        }
+
+        if (
+            arena.roundNumber >= arena.maxRounds ||
+            (!multipleOwners && survivorCount > 0)
+        ) {
             arena.state = ArenaState.FINISHED;
+        } else if (survivorCount == 0) {
+            arena.state = ArenaState.FINISHED; // everyone died!
         } else {
             arena.state = ArenaState.ACTIVE;
         }
 
-        emit RoundExecuted(
-            arenaId,
-            arena.roundNumber,
-            arenaCreatureIds[arenaId].length
-        );
+        emit RoundExecuted(arenaId, arena.roundNumber, survivorCount);
     }
 
     /// @dev Spawns a new creature with a random base genome
