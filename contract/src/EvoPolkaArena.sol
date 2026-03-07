@@ -192,9 +192,15 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         uint8 phase = currentPhase[arenaId];
         uint256 pIdx = processedIndex[arenaId];
 
+        mapping(uint256 => CreatureLib.Creature)
+            storage creatures = arenaCreatures[arenaId];
+        uint256[] storage ids = arenaCreatureIds[arenaId];
+
         if (phase == EvolutionEngine.PHASE_MOVEMENT) {
             pIdx = EvolutionEngine.processMovement(
-                arenaId,
+                creatures,
+                ids,
+                arena.gridSize,
                 pIdx,
                 arena.roundNumber
             );
@@ -208,7 +214,7 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         }
 
         if (phase == EvolutionEngine.PHASE_COMBAT) {
-            pIdx = EvolutionEngine.processCombat(arenaId, pIdx);
+            pIdx = EvolutionEngine.processCombat(creatures, ids, pIdx);
             if (pIdx == 0) {
                 phase = EvolutionEngine.PHASE_FEEDING;
             } else {
@@ -220,7 +226,7 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         }
 
         if (phase == EvolutionEngine.PHASE_FEEDING) {
-            pIdx = EvolutionEngine.processFeeding(arenaId, pIdx);
+            pIdx = EvolutionEngine.processFeeding(creatures, ids, pIdx);
             if (pIdx == 0) {
                 phase = EvolutionEngine.PHASE_BREEDING;
             } else {
@@ -233,7 +239,8 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
 
         if (phase == EvolutionEngine.PHASE_BREEDING) {
             pIdx = EvolutionEngine.processBreeding(
-                arenaId,
+                creatures,
+                ids,
                 pIdx,
                 arena.mutationRate,
                 arena.gridSize
@@ -249,7 +256,7 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         }
 
         if (phase == EvolutionEngine.PHASE_CULLING) {
-            pIdx = EvolutionEngine.processCulling(arenaId, pIdx);
+            pIdx = EvolutionEngine.processCulling(creatures, ids, pIdx);
             if (pIdx == 0) {
                 _finalizeRound(arenaId);
             } else {
@@ -344,5 +351,20 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         arenaCreatureIds[arenaId].push(cId);
 
         emit CreatureBorn(arenaId, cId, owner, normalizedGenome);
+    }
+
+    /// @notice Read a full creature struct for a given arena and creature ID
+    function getCreature(
+        uint256 arenaId,
+        uint256 creatureId
+    ) external view returns (CreatureLib.Creature memory) {
+        return arenaCreatures[arenaId][creatureId];
+    }
+
+    /// @notice Read the creature ID list for a given arena
+    function getCreatureIds(
+        uint256 arenaId
+    ) external view returns (uint256[] memory) {
+        return arenaCreatureIds[arenaId];
     }
 }
