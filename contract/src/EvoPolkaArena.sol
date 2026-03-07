@@ -53,6 +53,9 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
     mapping(uint256 => uint8) public currentPhase;
     mapping(uint256 => uint256) public processedIndex;
 
+    // Food tracking: arenaId => positionKey => hasFood
+    mapping(uint256 => mapping(uint256 => bool)) public foodTiles;
+
     // Events
     event ArenaCreated(uint256 indexed arenaId, address creator);
     event PlayerJoined(uint256 indexed arenaId, address player);
@@ -155,6 +158,12 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         arena.state = ArenaState.ACTIVE;
         arena.lastRoundBlock = block.number;
 
+        _spawnFood(
+            arenaId,
+            (arena.gridSize * arena.gridSize) / 10,
+            block.number
+        );
+
         emit ArenaStarted(arenaId);
     }
 
@@ -226,7 +235,13 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         }
 
         if (phase == EvolutionEngine.PHASE_FEEDING) {
-            pIdx = EvolutionEngine.processFeeding(creatures, ids, pIdx);
+            pIdx = EvolutionEngine.processFeeding(
+                creatures,
+                ids,
+                foodTiles[arenaId],
+                arena.gridSize,
+                pIdx
+            );
             if (pIdx == 0) {
                 phase = EvolutionEngine.PHASE_BREEDING;
             } else {
@@ -275,6 +290,12 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         arena.lastRoundBlock = block.number;
         currentPhase[arenaId] = EvolutionEngine.PHASE_NONE;
         processedIndex[arenaId] = 0;
+
+        _spawnFood(
+            arenaId,
+            (arena.gridSize * arena.gridSize) / 20,
+            arena.roundNumber
+        );
 
         if (arena.roundNumber >= arena.maxRounds) {
             arena.state = ArenaState.FINISHED;
@@ -351,6 +372,40 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         arenaCreatureIds[arenaId].push(cId);
 
         emit CreatureBorn(arenaId, cId, owner, normalizedGenome);
+    }
+
+    /// @dev Spawns food tiles randomly
+    function _spawnFood(uint256 arenaId, uint256 count, uint256 salt) internal {
+        uint256 gs = arenas[arenaId].gridSize;
+        if (gs == 0) return;
+        mapping(uint256 => bool) storage tiles = foodTiles[arenaId];
+
+        uint256 spawned = 0;
+        uint256 attempts = 0;
+        uint256 maxAttempts = count * 2;
+
+        while (spawned < count && attempts < maxAttempts) {
+            uint256 entropy = uint256(
+                keccak256(
+                    abi.encode(
+                        block.prevrandao,
+                        block.number,
+                        arenaId,
+                        salt,
+                        attempts
+                    )
+                )
+            );
+            uint256 x = entropy % gs;
+            uint256 y = (entropy / gs) % gs;
+            uint256 key = x * gs + y;
+
+            if (!tiles[key]) {
+                tiles[key] = true;
+                spawned++;
+            }
+            attempts++;
+        }
     }
 
     /// @notice Read a full creature struct for a given arena and creature ID
