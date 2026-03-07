@@ -1,0 +1,39 @@
+No files changed, compilation skipped
+
+Ran 4 tests for test/EvolutionEngine.t.sol:EvolutionEngineTest
+[PASS] test_ContinueRound_RevertsNotInEvolving() (gas: 20536)
+[PASS] test_RunEvolutionRound_Orchestration() (gas: 86674)
+[PASS] test_RunEvolutionRound_TooSoon() (gas: 27616)
+[FAIL: Too soon to execute] test_RunEvolutionRound_TransitionsToFinished() (gas: 99993)
+Traces:
+  [99993] EvolutionEngineTest::test_RunEvolutionRound_TransitionsToFinished()
+    ├─ [0] VM::roll(11)
+    │   └─ ← [Return]
+    ├─ [84303] EvoPolkaArena::runEvolutionRound(0)
+    │   ├─ [238] EvolutionEngine::processMovement(0, 0, 0) [delegatecall]
+    │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   ├─ [203] EvolutionEngine::processCombat(0, 0) [delegatecall]
+    │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   ├─ [225] EvolutionEngine::processFeeding(0, 0) [delegatecall]
+    │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   ├─ [177] EvolutionEngine::processBreeding(0, 0, 500, 50) [delegatecall]
+    │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   ├─ [159] EvolutionEngine::processCulling(0, 0) [delegatecall]
+    │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   ├─ emit RoundExecuted(arenaId: 0, round: 1, survivors: 4)
+    │   └─ ← [Stop]
+    ├─ [0] VM::roll(11)
+    │   └─ ← [Return]
+    ├─ [4071] EvoPolkaArena::runEvolutionRound(0)
+    │   └─ ← [Revert] Too soon to execute
+    └─ ← [Revert] Too soon to execute
+
+Suite result: FAILED. 3 passed; 1 failed; 0 skipped; finished in 2.98ms (2.45ms CPU time)
+
+Ran 1 test suite in 35.23ms (2.98ms CPU time): 3 tests passed, 1 failed, 0 skipped (4 total tests)
+
+Failing tests:
+Encountered 1 failing test in test/EvolutionEngine.t.sol:EvolutionEngineTest
+[FAIL: Too soon to execute] test_RunEvolutionRound_TransitionsToFinished() (gas: 99993)
+
+Encountered a total of 1 failing tests, 3 tests succeeded
