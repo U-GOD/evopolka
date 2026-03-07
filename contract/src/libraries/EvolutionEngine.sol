@@ -162,8 +162,37 @@ library EvolutionEngine {
     function processFeeding(
         mapping(uint256 => CreatureLib.Creature) storage creatures,
         uint256[] storage creatureIds,
+        mapping(uint256 => bool) storage foodMap,
+        uint256 gridSize,
         uint256 startIndex
     ) internal returns (uint256) {
+        uint256 len = creatureIds.length;
+        uint256 processed;
+
+        for (uint256 i = startIndex; i < len; i++) {
+            if (processed >= MAX_BATCH || gasleft() < GAS_RESERVE) {
+                return i;
+            }
+
+            CreatureLib.Creature storage c = creatures[creatureIds[i]];
+            if (!c.alive) continue;
+
+            uint256 posKey = uint256(c.x) * gridSize + uint256(c.y);
+            if (foodMap[posKey]) {
+                foodMap[posKey] = false;
+                uint16 gain = uint16(c.intelligence) / 5;
+                if (gain == 0) gain = 1;
+
+                if (c.energy + gain > 500) {
+                    c.energy = 500;
+                } else {
+                    c.energy += gain;
+                }
+            }
+
+            processed++;
+        }
+
         return 0;
     }
 
