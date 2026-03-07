@@ -84,12 +84,77 @@ library EvolutionEngine {
         return 0;
     }
 
-    /// @notice Process the combat phase
+    event CombatOccurred(
+        uint256 indexed arenaId,
+        uint256 attacker,
+        uint256 defender,
+        bool attackerWon
+    );
+    event CreatureDied(uint256 indexed arenaId, uint256 creatureId);
+
+    /// @notice Process the combat phase — creatures sharing a tile fight
+    /// @return 0 if phase complete, otherwise the next startIndex to resume from
     function processCombat(
         mapping(uint256 => CreatureLib.Creature) storage creatures,
         uint256[] storage creatureIds,
         uint256 startIndex
     ) internal returns (uint256) {
+        uint256 len = creatureIds.length;
+        uint256 processed;
+
+        bool[] memory fought = new bool[](len);
+
+        for (uint256 i = startIndex; i < len; i++) {
+            if (processed >= MAX_BATCH || gasleft() < GAS_RESERVE) {
+                return i;
+            }
+
+            CreatureLib.Creature storage a = creatures[creatureIds[i]];
+            if (!a.alive || fought[i]) continue;
+
+            for (uint256 j = i + 1; j < len; j++) {
+                if (fought[j]) continue;
+
+                CreatureLib.Creature storage b = creatures[creatureIds[j]];
+                if (!b.alive) continue;
+                if (a.x != b.x || a.y != b.y) continue;
+
+                fought[i] = true;
+                fought[j] = true;
+
+                CreatureLib.Creature storage attacker;
+                CreatureLib.Creature storage defender;
+
+                if (a.aggression >= b.aggression) {
+                    attacker = a;
+                    defender = b;
+                } else {
+                    attacker = b;
+                    defender = a;
+                }
+
+                uint16 damage = uint16(attacker.strength);
+                uint16 defBonus = uint16(defender.defense) / 2;
+                damage = damage > defBonus ? damage - defBonus : 1;
+
+                bool killed;
+                if (defender.hp <= damage) {
+                    defender.hp = 0;
+                    defender.alive = false;
+                    killed = true;
+                    attacker.energy += defender.energy / 2;
+                    emit CreatureDied(0, defender.id);
+                } else {
+                    defender.hp -= damage;
+                }
+
+                emit CombatOccurred(0, attacker.id, defender.id, killed);
+                break;
+            }
+
+            processed++;
+        }
+
         return 0;
     }
 
