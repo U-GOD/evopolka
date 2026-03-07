@@ -355,6 +355,83 @@ library EvolutionEngine {
         uint256[] storage creatureIds,
         uint256 startIndex
     ) internal returns (uint256) {
+        uint256 len = creatureIds.length;
+
+        // Execute the whole culling phase in one shot to properly identify the bottom 20%
+        if (startIndex > 0) return 0;
+
+        uint256 aliveCount = 0;
+
+        // Pass 1: Kill 0 energy/hp and count remaining alive
+        for (uint256 i = 0; i < len; i++) {
+            CreatureLib.Creature storage c = creatures[creatureIds[i]];
+            if (!c.alive) continue;
+
+            if (c.energy == 0 || c.hp == 0) {
+                c.alive = false;
+                emit CreatureDied(0, c.id);
+            } else {
+                aliveCount++;
+            }
+        }
+
+        // Pass 2: Sort and kill bottom 20%
+        if (aliveCount > 0) {
+            uint256[] memory aliveIds = new uint256[](aliveCount);
+            uint256[] memory fitnesses = new uint256[](aliveCount);
+
+            uint256 idx = 0;
+            for (uint256 i = 0; i < len; i++) {
+                CreatureLib.Creature storage c = creatures[creatureIds[i]];
+                if (c.alive) {
+                    aliveIds[idx] = c.id;
+                    fitnesses[idx] = CreatureLib.fitness(c);
+                    idx++;
+                }
+            }
+
+            if (aliveCount > 1) {
+                _quickSort(aliveIds, fitnesses, 0, int256(aliveCount - 1));
+            }
+
+            uint256 toKill = aliveCount / 5; // bottom 20%
+            for (uint256 i = 0; i < toKill; i++) {
+                uint256 killId = aliveIds[i];
+                creatures[killId].alive = false;
+                emit CreatureDied(0, killId);
+            }
+        }
+
         return 0;
+    }
+
+    function _quickSort(
+        uint256[] memory ids,
+        uint256[] memory fitnesses,
+        int256 left,
+        int256 right
+    ) internal pure {
+        int256 i = left;
+        int256 j = right;
+        if (i == j) return;
+        uint256 pivot = fitnesses[uint256(left + (right - left) / 2)];
+        while (i <= j) {
+            while (fitnesses[uint256(i)] < pivot) i++;
+            while (pivot < fitnesses[uint256(j)]) j--;
+            if (i <= j) {
+                (fitnesses[uint256(i)], fitnesses[uint256(j)]) = (
+                    fitnesses[uint256(j)],
+                    fitnesses[uint256(i)]
+                );
+                (ids[uint256(i)], ids[uint256(j)]) = (
+                    ids[uint256(j)],
+                    ids[uint256(i)]
+                );
+                i++;
+                j--;
+            }
+        }
+        if (left < j) _quickSort(ids, fitnesses, left, j);
+        if (i < right) _quickSort(ids, fitnesses, i, right);
     }
 }
