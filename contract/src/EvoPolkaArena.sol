@@ -253,12 +253,13 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         }
 
         if (phase == EvolutionEngine.PHASE_BREEDING) {
-            pIdx = EvolutionEngine.processBreeding(
+            (pIdx, nextCreatureId) = EvolutionEngine.processBreeding(
                 creatures,
                 ids,
                 pIdx,
                 arena.mutationRate,
-                arena.gridSize
+                arena.gridSize,
+                nextCreatureId
             );
             if (pIdx == 0) {
                 phase = EvolutionEngine.PHASE_CULLING;
