@@ -28,11 +28,11 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         uint256 totalPot;
         uint256 roundNumber;
         uint256 maxRounds;
-        uint256 gridSize; // NxN grid
+        uint256 gridSize;
         uint256 creaturesPerPlayer;
-        uint256 mutationRate; // basis points 0-10000
+        uint256 mutationRate;
         uint256 lastRoundBlock;
-        uint256 roundInterval; // blocks between rounds
+        uint256 roundInterval;
     }
 
     uint256 public nextArenaId;
@@ -40,17 +40,12 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
 
     mapping(uint256 => Arena) public arenas;
 
-    // arenaId => (creatureId => Creature)
     mapping(uint256 => mapping(uint256 => CreatureLib.Creature))
         public arenaCreatures;
-    // arenaId => creatureIds active in arena
     mapping(uint256 => uint256[]) public arenaCreatureIds;
 
-    // arenaId => player count
     mapping(uint256 => uint256) public arenaPlayerCount;
-    // arenaId => player address array
     mapping(uint256 => address[]) public arenaPlayers;
-    // arenaId => player => joined boolean
     mapping(uint256 => mapping(address => bool)) public hasJoined;
 
     // Events
@@ -112,7 +107,6 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         arenaPlayerCount[arenaId]++;
         arena.totalPot += msg.value;
 
-        // Spawn initial random creatures
         for (uint256 i = 0; i < arena.creaturesPerPlayer; i++) {
             _spawnRandomCreature(arenaId, msg.sender);
         }
@@ -141,9 +135,8 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
     function _spawnRandomCreature(uint256 arenaId, address owner) internal {
         uint256 cId = nextCreatureId++;
 
-        // Generate a random 32-byte genome using block.prevrandao
         bytes32 randomGenome = keccak256(
-            abi.encodePacked(block.prevrandao, block.number, owner, cId)
+            abi.encode(block.prevrandao, block.number, owner, cId)
         );
 
         (
@@ -155,8 +148,6 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
             uint8 def
         ) = CreatureLib.decodeGenome(randomGenome);
 
-        // Normalize initial traits so creatures aren't hopelessly broken
-        // Ensuring a minimum of 10 for each stat just to make them viable, capped at 255 natively through modulo logic if desired.
         speed = speed < 10 ? 10 : speed;
         strength = strength < 10 ? 10 : strength;
         intel = intel < 10 ? 10 : intel;
@@ -183,8 +174,8 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
             aggression: agg,
             reproRate: repro,
             defense: def,
-            energy: 100, // starting energy
-            hp: 100, // starting hit points
+            energy: 100,
+            hp: 100,
             x: uint8(
                 uint256(keccak256(abi.encode(randomGenome, "X"))) %
                     arenas[arenaId].gridSize
