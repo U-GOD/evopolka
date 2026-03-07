@@ -108,4 +108,22 @@ contract ArenaHarness is EvoPolkaArena {
     function spawnRandomCreature(uint256 arenaId, address owner) external {
         _spawnRandomCreature(arenaId, owner);
     }
+
+    /// @notice Directly call processCulling for isolated testing
+    function testProcessCulling(
+        uint256 arenaId,
+        uint256 startIndex
+    ) external returns (uint256) {
+        return
+            EvolutionEngine.processCulling(
+                arenaCreatures[arenaId],
+                arenaCreatureIds[arenaId],
+                startIndex
+            );
+    }
+
+    /// @notice Directly call _finalizeRound to test finish conditions
+    function testFinalizeRound(uint256 arenaId) external {
+        _finalizeRound(arenaId);
+    }
 }
