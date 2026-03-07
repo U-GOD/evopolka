@@ -87,4 +87,25 @@ contract ArenaHarness is EvoPolkaArena {
                 startIndex
             );
     }
+
+    /// @notice Directly call processBreeding for isolated testing
+    function testProcessBreeding(
+        uint256 arenaId,
+        uint256 startIndex
+    ) external returns (uint256, uint256) {
+        return
+            EvolutionEngine.processBreeding(
+                arenaCreatures[arenaId],
+                arenaCreatureIds[arenaId],
+                startIndex,
+                arenas[arenaId].mutationRate,
+                arenas[arenaId].gridSize,
+                nextCreatureId
+            );
+    }
+
+    /// @notice Expose internal spawn logic to manually inflate population
+    function spawnRandomCreature(uint256 arenaId, address owner) external {
+        _spawnRandomCreature(arenaId, owner);
+    }
 }
