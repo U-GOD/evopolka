@@ -196,15 +196,157 @@ library EvolutionEngine {
         return 0;
     }
 
+    event BreedingOccurred(
+        uint256 indexed arenaId,
+        uint256 parent1,
+        uint256 parent2,
+        uint256 child
+    );
+    event CreatureBorn(
+        uint256 indexed arenaId,
+        uint256 creatureId,
+        address owner,
+        bytes32 genome
+    );
+
     /// @notice Process the breeding phase
     function processBreeding(
         mapping(uint256 => CreatureLib.Creature) storage creatures,
         uint256[] storage creatureIds,
         uint256 startIndex,
         uint256 mutationRate,
-        uint256 gridSize
-    ) internal returns (uint256) {
-        return 0;
+        uint256 gridSize,
+        uint256 nextCreatureIdRef
+    ) internal returns (uint256, uint256) {
+        uint256 len = creatureIds.length;
+        uint256 processed;
+        uint256 maxPopulation = (gridSize * gridSize) / 2;
+
+        for (uint256 i = startIndex; i < len; i++) {
+            if (processed >= MAX_BATCH || gasleft() < GAS_RESERVE) {
+                return (i, nextCreatureIdRef);
+            }
+
+            if (creatureIds.length >= maxPopulation) {
+                return (0, nextCreatureIdRef);
+            }
+
+            CreatureLib.Creature storage pA = creatures[creatureIds[i]];
+            if (!pA.alive || pA.energy < 150) {
+                processed++;
+                continue;
+            }
+
+            for (uint256 j = i + 1; j < len; j++) {
+                if (gasleft() < GAS_RESERVE) {
+                    return (i, nextCreatureIdRef);
+                }
+
+                CreatureLib.Creature storage pB = creatures[creatureIds[j]];
+                if (!pB.alive || pB.energy < 150) continue;
+
+                uint256 distX = pA.x > pB.x ? pA.x - pB.x : pB.x - pA.x;
+                uint256 distY = pA.y > pB.y ? pA.y - pB.y : pB.y - pA.y;
+                if (distX > 2 || distY > 2) continue;
+
+                pA.energy -= 50;
+                pB.energy -= 50;
+
+                uint256 entropy = uint256(
+                    keccak256(
+                        abi.encode(
+                            block.prevrandao,
+                            nextCreatureIdRef,
+                            pA.id,
+                            pB.id
+                        )
+                    )
+                );
+
+                bytes32 childGenome = CreatureLib.crossover(
+                    pA.genome,
+                    pB.genome,
+                    entropy
+                );
+                childGenome = CreatureLib.mutate(
+                    childGenome,
+                    mutationRate,
+                    entropy
+                );
+
+                (
+                    uint8 speed,
+                    uint8 strength,
+                    uint8 intel,
+                    uint8 agg,
+                    uint8 repro,
+                    uint8 def
+                ) = CreatureLib.decodeGenome(childGenome);
+                speed = speed < 10 ? 10 : speed;
+                strength = strength < 10 ? 10 : strength;
+                intel = intel < 10 ? 10 : intel;
+                agg = agg < 10 ? 10 : agg;
+                repro = repro < 10 ? 10 : repro;
+                def = def < 10 ? 10 : def;
+                childGenome = CreatureLib.encodeGenome(
+                    childGenome,
+                    speed,
+                    strength,
+                    intel,
+                    agg,
+                    repro,
+                    def
+                );
+
+                CreatureLib.Creature storage stronger = pA.strength >
+                    pB.strength
+                    ? pA
+                    : pB;
+
+                uint8 childX = stronger.x;
+                uint8 childY = stronger.y;
+                if (entropy % 2 == 0) {
+                    childX = childX > 0 ? childX - 1 : childX + 1;
+                } else {
+                    childY = childY > 0 ? childY - 1 : childY + 1;
+                }
+                if (childX >= gridSize) childX = uint8(gridSize - 1);
+                if (childY >= gridSize) childY = uint8(gridSize - 1);
+
+                uint32 childGen = pA.generation > pB.generation
+                    ? pA.generation + 1
+                    : pB.generation + 1;
+
+                uint256 childId = nextCreatureIdRef++;
+
+                creatureIds.push(childId);
+                creatures[childId] = CreatureLib.Creature({
+                    id: childId,
+                    owner: stronger.owner,
+                    speed: speed,
+                    strength: strength,
+                    intelligence: intel,
+                    aggression: agg,
+                    reproRate: repro,
+                    defense: def,
+                    energy: 80,
+                    hp: 80,
+                    x: childX,
+                    y: childY,
+                    generation: childGen,
+                    alive: true,
+                    genome: childGenome
+                });
+
+                emit BreedingOccurred(0, pA.id, pB.id, childId);
+                emit CreatureBorn(0, childId, stronger.owner, childGenome);
+                break;
+            }
+
+            processed++;
+        }
+
+        return (0, nextCreatureIdRef);
     }
 
     /// @notice Process the culling phase
