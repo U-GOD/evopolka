@@ -61,4 +61,30 @@ contract ArenaHarness is EvoPolkaArena {
                 startIndex
             );
     }
+
+    /// @notice Force-set a food tile for testing
+    function setFoodTile(
+        uint256 arenaId,
+        uint8 x,
+        uint8 y,
+        bool hasFood
+    ) external {
+        uint256 key = uint256(x) * arenas[arenaId].gridSize + uint256(y);
+        foodTiles[arenaId][key] = hasFood;
+    }
+
+    /// @notice Directly call processFeeding for isolated testing
+    function testProcessFeeding(
+        uint256 arenaId,
+        uint256 startIndex
+    ) external returns (uint256) {
+        return
+            EvolutionEngine.processFeeding(
+                arenaCreatures[arenaId],
+                arenaCreatureIds[arenaId],
+                foodTiles[arenaId],
+                arenas[arenaId].gridSize,
+                startIndex
+            );
+    }
 }
