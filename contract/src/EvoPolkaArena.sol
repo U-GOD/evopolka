@@ -267,6 +267,36 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         emit RewardClaimed(arenaId, msg.sender, amount);
     }
 
+    /// @notice Allows owner to withdraw remaining pot if an arena stalls indefinitely
+    /// @dev Locked behind a 7-day delay (EMERGENCY_DELAY)
+    function emergencyWithdraw(uint256 arenaId) external onlyOwner {
+        require(
+            block.timestamp >= arenaCreatedAt[arenaId] + EMERGENCY_DELAY,
+            "Too early"
+        );
+        Arena storage arena = arenas[arenaId];
+        require(arena.state != ArenaState.FINISHED, "Already finished");
+
+        uint256 balance = arena.totalPot;
+        arena.totalPot = 0;
+        arena.state = ArenaState.FINISHED; // Lock out further execution
+
+        (bool success, ) = msg.sender.call{value: balance}("");
+        require(success, "Transfer failed");
+
+        emit EmergencyWithdraw(arenaId, msg.sender, balance);
+    }
+
+    /// @notice Pauses new arena creations, joins, and round executions
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /// @notice Unpauses contract execution
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
     /// @notice Trigger a new evolution round if rules allow
     function runEvolutionRound(
         uint256 arenaId
