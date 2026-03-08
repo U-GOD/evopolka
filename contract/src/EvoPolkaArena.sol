@@ -200,6 +200,58 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         emit ArenaStarted(arenaId);
     }
 
+    /// @notice Calculate and distribute rewards to survivors after arena is FINISHED
+    function distributeRewards(uint256 arenaId) external nonReentrant {
+        Arena storage arena = arenas[arenaId];
+        require(arena.state == ArenaState.FINISHED, "Arena not finished");
+        require(!rewardsDistributed[arenaId], "Rewards already distributed");
+
+        rewardsDistributed[arenaId] = true;
+
+        uint256 totalPot = arena.totalPot;
+        uint256 protocolFee = (totalPot * PROTOCOL_FEE_BPS) / 10000;
+        uint256 distributablePot = totalPot - protocolFee;
+
+        address[] storage players = arenaPlayers[arenaId];
+        uint256 pCount = arenaPlayerCount[arenaId];
+
+        uint256[] memory cIds = arenaCreatureIds[arenaId];
+        uint256 totalSurvivors = 0;
+        uint256[] memory playerSurvivors = new uint256[](pCount);
+
+        for (uint256 i = 0; i < cIds.length; i++) {
+            CreatureLib.Creature storage c = arenaCreatures[arenaId][cIds[i]];
+            if (c.alive) {
+                totalSurvivors++;
+                for (uint256 j = 0; j < pCount; j++) {
+                    if (players[j] == c.owner) {
+                        playerSurvivors[j]++;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (totalSurvivors > 0) {
+            for (uint256 j = 0; j < pCount; j++) {
+                if (playerSurvivors[j] > 0) {
+                    uint256 reward = (distributablePot * playerSurvivors[j]) /
+                        totalSurvivors;
+                    pendingRewards[arenaId][players[j]] += reward;
+                }
+            }
+        } else {
+            // Everyone died: distribute evenly
+            uint256 refundPerPlayer = distributablePot / pCount;
+            for (uint256 j = 0; j < pCount; j++) {
+                pendingRewards[arenaId][players[j]] += refundPerPlayer;
+            }
+        }
+
+        pendingRewards[arenaId][feeRecipient] += protocolFee;
+        emit ProtocolFeeCollected(arenaId, protocolFee);
+    }
+
     /// @notice Trigger a new evolution round if rules allow
     function runEvolutionRound(
         uint256 arenaId
