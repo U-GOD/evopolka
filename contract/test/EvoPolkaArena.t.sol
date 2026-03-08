@@ -27,7 +27,7 @@ contract EvoPolkaArenaTest is Test {
             roundInterval: 10
         });
 
-        assertEq(arenaId, 0);
+        assertEq(arenaId, 1);
 
         (
             uint256 id,
@@ -43,7 +43,7 @@ contract EvoPolkaArenaTest is Test {
             uint256 interval
         ) = arena.arenas(arenaId);
 
-        assertEq(id, 0);
+        assertEq(id, 1);
         assertEq(uint(state), uint(EvoPolkaArena.ArenaState.LOBBY));
         assertEq(stake, 1 ether);
         assertEq(pot, 0);
@@ -67,8 +67,8 @@ contract EvoPolkaArenaTest is Test {
         assertTrue(arena.hasJoined(arenaId, player1));
 
         // Wait... did they get 3 creatures?
-        // nextCreatureId should be 3 now.
-        assertEq(arena.nextCreatureId(), 3);
+        // nextCreatureId should be 4 now.
+        assertEq(arena.nextCreatureId(), 4);
 
         // Assert a creature actually spawned and exists
         (
@@ -87,7 +87,7 @@ contract EvoPolkaArenaTest is Test {
             uint32 gen,
             bool alive,
 
-        ) = arena.arenaCreatures(arenaId, 0); // bytes32 genome
+        ) = arena.arenaCreatures(arenaId, 1); // bytes32 genome
 
         assertEq(owner, player1);
         assertEq(hp, 100);
