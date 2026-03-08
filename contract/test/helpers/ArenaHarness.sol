@@ -7,6 +7,16 @@ import {EvolutionEngine} from "../../src/libraries/EvolutionEngine.sol";
 
 /// @notice Harness exposing internal storage for deterministic combat/movement tests
 contract ArenaHarness is EvoPolkaArena {
+    /// @notice Force-set arena state
+    function setArenaState(uint256 arenaId, ArenaState state) external {
+        arenas[arenaId].state = state;
+    }
+
+    /// @notice Explicitly kill a creature for testing
+    function killCreature(uint256 arenaId, uint256 creatureId) external {
+        arenaCreatures[arenaId][creatureId].alive = false;
+    }
+
     /// @notice Force-set a creature's position, stats, and energy for testing
     function setCreatureState(
         uint256 arenaId,
