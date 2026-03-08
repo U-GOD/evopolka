@@ -252,6 +252,21 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         emit ProtocolFeeCollected(arenaId, protocolFee);
     }
 
+    /// @notice Claim pending rewards securely using pull-over-push
+    function claimReward(uint256 arenaId) external nonReentrant whenNotPaused {
+        uint256 amount = pendingRewards[arenaId][msg.sender];
+        require(amount > 0, "No pending reward");
+
+        // EFFECTS before INTERACTIONS (CEI pattern)
+        pendingRewards[arenaId][msg.sender] = 0;
+
+        // INTERACTIONS
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
+
+        emit RewardClaimed(arenaId, msg.sender, amount);
+    }
+
     /// @notice Trigger a new evolution round if rules allow
     function runEvolutionRound(
         uint256 arenaId
