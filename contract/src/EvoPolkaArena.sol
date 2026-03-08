@@ -56,6 +56,16 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
     // Food tracking: arenaId => positionKey => hasFood
     mapping(uint256 => mapping(uint256 => bool)) public foodTiles;
 
+    // Reward and Staking tracking
+    uint256 public constant PROTOCOL_FEE_BPS = 200; // 2%
+    uint256 public constant EMERGENCY_DELAY = 7 days;
+
+    mapping(uint256 => mapping(address => uint256)) public pendingRewards;
+    mapping(uint256 => bool) public rewardsDistributed;
+    mapping(uint256 => uint256) public arenaCreatedAt;
+
+    address public feeRecipient;
+
     // Events
     event ArenaCreated(uint256 indexed arenaId, address creator);
     event PlayerJoined(uint256 indexed arenaId, address player);
@@ -89,8 +99,29 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         uint256 parent2,
         uint256 child
     );
+    event RewardClaimed(
+        uint256 indexed arenaId,
+        address player,
+        uint256 amount
+    );
+    event ProtocolFeeCollected(uint256 indexed arenaId, uint256 amount);
+    event EmergencyWithdraw(
+        uint256 indexed arenaId,
+        address recipient,
+        uint256 amount
+    );
 
-    constructor() Ownable(msg.sender) {}
+    constructor() Ownable(msg.sender) {
+        nextArenaId = 1;
+        nextCreatureId = 1;
+        feeRecipient = msg.sender;
+    }
+
+    /// @notice Update the fee recipient address
+    function setFeeRecipient(address _feeRecipient) external onlyOwner {
+        require(_feeRecipient != address(0), "Invalid address");
+        feeRecipient = _feeRecipient;
+    }
 
     /// @notice Create a new Evolution Arena
     function createArena(
@@ -120,6 +151,8 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         newArena.creaturesPerPlayer = creaturesPerPlayer;
         newArena.mutationRate = mutationRate;
         newArena.roundInterval = roundInterval;
+
+        arenaCreatedAt[arenaId] = block.timestamp;
 
         emit ArenaCreated(arenaId, msg.sender);
     }
