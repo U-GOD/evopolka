@@ -1,6 +1,48 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { ConnectButton } from './components/ConnectButton';
+import { ArenaRenderer } from './components/ArenaRenderer';
+import { useArena, useCreateArena, useJoinArena, useRunRound } from './hooks/useArena';
+import { useAccount } from 'wagmi';
+import { parseEther } from 'viem';
 
 function App() {
+  const [arenaIdInput, setArenaIdInput] = useState('1');
+  const [stakeInput, setStakeInput] = useState('0.1');
+  
+  const currentArenaId = BigInt(arenaIdInput || '0');
+  
+  const { address } = useAccount();
+  const { arena } = useArena(currentArenaId);
+  const { create, isPending: isCreating } = useCreateArena();
+  const { join, isPending: isJoining } = useJoinArena();
+  const { run, isPending: isRunning } = useRunRound();
+
+  const handleCreateArena = async () => {
+    try {
+      if (!stakeInput) return;
+      await create(stakeInput, 20, 100); // 20x20 grid, 100 rounds max
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleJoinArena = async () => {
+    try {
+      if (!arena) return;
+      await join(currentArenaId, arena.stakePerPlayer);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleRunRound = async () => {
+    try {
+      await run(currentArenaId);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="flex h-screen w-full bg-background-dark text-slate-100 font-display overflow-hidden">
       {/* Left Sidebar: Lobby & Controls */}
@@ -12,53 +54,54 @@ function App() {
           <h1 className="text-2xl font-bold tracking-tight text-white">EvoPolka</h1>
         </div>
         
+        <ConnectButton />
+
         <div className="glass-panel p-5 rounded-xl flex flex-col gap-4">
           <h3 className="text-xs uppercase tracking-widest text-slate-500 font-bold">Arena Management</h3>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-300">Stake Amount (DOT)</label>
-            <div className="relative">
-              <input className="w-full bg-background-dark border-border-muted rounded-lg py-2.5 px-4 text-white focus:ring-primary focus:border-primary transition-all" placeholder="0.00" type="number" />
-              <span className="absolute right-4 top-2.5 text-slate-500 text-sm font-bold">DOT</span>
+          
+          <div className="flex gap-2">
+            <div className="flex flex-col gap-2 w-1/3">
+              <label className="text-sm font-medium text-slate-300">ID</label>
+              <input value={arenaIdInput} onChange={e => setArenaIdInput(e.target.value)} className="w-full bg-background-dark border-border-muted rounded-lg py-2.5 px-4 text-white focus:ring-primary focus:border-primary transition-all text-center" placeholder="1" type="number" />
+            </div>
+            <div className="flex flex-col gap-2 w-2/3">
+              <label className="text-sm font-medium text-slate-300">Stake (DOT)</label>
+              <div className="relative">
+                <input value={stakeInput} onChange={e => setStakeInput(e.target.value)} className="w-full bg-background-dark border-border-muted rounded-lg py-2.5 px-4 text-white focus:ring-primary focus:border-primary transition-all" placeholder="0.1" type="number" />
+              </div>
             </div>
           </div>
-          <button className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="19"/><line x1="9" y1="13" x2="11" y2="15"/></svg>
-            Join Arena
-          </button>
+          
+          {arena && arena.state === 0 ? (
+            <button disabled={isJoining || !address} onClick={handleJoinArena} className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="19"/><line x1="9" y1="13" x2="11" y2="15"/></svg>
+              {isJoining ? 'Joining...' : 'Join Arena'}
+            </button>
+          ) : (
+            <button disabled={isCreating || !address} onClick={handleCreateArena} className="w-full bg-surface hover:bg-surface/80 border border-primary text-primary disabled:opacity-50 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all">
+              {isCreating ? 'Creating...' : 'Create New Arena'}
+            </button>
+          )}
         </div>
 
         <div className="flex-1 flex flex-col gap-4 min-h-0">
-          <h3 className="text-xs uppercase tracking-widest text-slate-500 font-bold">Active Players</h3>
-          <div className="flex flex-col gap-3 overflow-y-auto terminal-scroll">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-accent-indigo"></div>
-                <span className="text-sm font-mono text-slate-300">0x7a...E42</span>
-              </div>
-              <span className="text-xs font-bold text-accent-cyan bg-accent-cyan/10 px-2 py-1 rounded">12 Alphas</span>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-accent-cyan to-indigo-500"></div>
-                <span className="text-sm font-mono text-slate-300">0x12...9B1</span>
-              </div>
-              <span className="text-xs font-bold text-accent-cyan bg-accent-cyan/10 px-2 py-1 rounded">8 Alphas</span>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 to-primary"></div>
-                <span className="text-sm font-mono text-slate-300">0xCC...04F</span>
-              </div>
-              <span className="text-xs font-bold text-accent-cyan bg-accent-cyan/10 px-2 py-1 rounded">22 Alphas</span>
-            </div>
+          <h3 className="text-xs uppercase tracking-widest text-slate-500 font-bold">Arena Status</h3>
+          <div className="flex flex-col gap-3 overflow-y-auto terminal-scroll p-2 text-sm text-slate-300">
+            {arena ? (
+              <>
+                <div className="flex justify-between"><span>State:</span> <span className="text-accent-cyan font-bold">{['LOBBY', 'ACTIVE', 'EVOLVING', 'FINISHED'][arena.state]}</span></div>
+                <div className="flex justify-between"><span>Pot:</span> <span>{Number(arena.totalPot) / 1e18} DOT</span></div>
+                <div className="flex justify-between"><span>Grid:</span> <span>{Number(arena.gridSize)}x{Number(arena.gridSize)}</span></div>
+              </>
+            ) : (
+              <div className="text-slate-500 italic text-center py-4">Arena not found</div>
+            )}
           </div>
         </div>
 
-        <button className="w-full bg-accent-cyan/10 hover:bg-accent-cyan/20 text-accent-cyan border border-accent-cyan/30 font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-tighter">
+        <button disabled={isRunning || !arena || arena.state !== 1} onClick={handleRunRound} className="w-full bg-accent-cyan/10 hover:bg-accent-cyan/20 disabled:opacity-30 text-accent-cyan border border-accent-cyan/30 font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-tighter">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
-          Start Evolution Round
+          {isRunning ? 'Processing...' : 'Run Round'}
         </button>
       </aside>
 
@@ -98,48 +141,7 @@ function App() {
         {/* Simulation Grid Container */}
         <div className="flex-1 flex items-center justify-center">
           <div className="aspect-square h-full max-h-[700px] border border-border-muted bg-surface/20 rounded-xl relative grid-bg p-4 shadow-[0_0_50px_rgba(0,245,255,0.05)] overflow-hidden">
-            <div className="grid grid-cols-20 grid-rows-20 gap-1 w-full h-full opacity-80" style={{ display: 'grid', gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }}>
-              
-              {/* Generator Loop Emulation (Manual placement for visual mock) */}
-              <div className="col-start-2 row-start-3 w-full h-full flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_#f4259d]"></div>
-              </div>
-              
-              <div className="col-start-12 row-start-15 w-full h-full flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-accent-cyan shadow-[0_0_10px_#00f5ff]"></div>
-              </div>
-              
-              <div className="col-start-5 row-start-18 w-full h-full flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]"></div>
-              </div>
-              
-              <div className="col-start-8 row-start-8 w-full h-full flex items-center justify-center">
-                <div className="w-2 h-2 rotate-45 bg-yellow-400 shadow-[0_0_8px_#facc15]"></div>
-              </div>
-              
-              <div className="col-start-15 row-start-4 w-full h-full flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_#f4259d]"></div>
-              </div>
-              
-              <div className="col-start-19 row-start-12 w-full h-full flex items-center justify-center">
-                <div className="w-2 h-2 rotate-45 bg-yellow-400 shadow-[0_0_8px_#facc15]"></div>
-              </div>
-              
-              <div className="col-start-10 row-start-1 w-full h-full flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-accent-cyan shadow-[0_0_10px_#00f5ff]"></div>
-              </div>
-              
-              <div className="col-start-4 row-start-7 w-full h-full flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
-              </div>
-              
-              <div className="col-start-17 row-start-17 w-full h-full flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-primary animate-pulse"></div>
-              </div>
-              
-              <div className="col-start-1 row-start-19 w-full h-full flex items-center justify-center opacity-20"><div className="w-1 h-1 bg-slate-500 rounded-full"></div></div>
-              <div className="col-start-20 row-start-20 w-full h-full flex items-center justify-center opacity-20"><div className="w-1 h-1 bg-slate-500 rounded-full"></div></div>
-            </div>
+            <ArenaRenderer arenaId={currentArenaId} gridSize={arena ? Number(arena.gridSize) : 20} />
           </div>
         </div>
 
