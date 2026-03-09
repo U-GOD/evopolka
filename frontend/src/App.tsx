@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { ConnectButton } from './components/ConnectButton';
 import { ArenaRenderer } from './components/ArenaRenderer';
 import { useArena, useCreateArena, useJoinArena, useRunRound } from './hooks/useArena';
@@ -16,9 +16,16 @@ function App() {
   const { address } = useAccount();
   const { arena } = useArena(currentArenaId);
   const { creatures } = useCreatures(currentArenaId);
-  const { logs } = useArenaEvents(currentArenaId);
-  
+
+  // Particle spawner ref — the ArenaRenderer registers its spawnParticles fn here
+  const spawnParticleRef = useRef<((x: number, y: number, type: 'spark' | 'birth' | 'death') => void) | null>(null);
+  const handleEventSpawn = useCallback((fn: (x: number, y: number, type: 'spark' | 'birth' | 'death') => void) => {
+    spawnParticleRef.current = fn;
+  }, []);
+
   const liveCreatures = (creatures as any[]) || [];
+  
+  const { logs } = useArenaEvents(currentArenaId, liveCreatures, spawnParticleRef.current);
   
   const { create, isPending: isCreating } = useCreateArena();
   const { join, isPending: isJoining } = useJoinArena();
@@ -148,7 +155,11 @@ function App() {
         {/* Simulation Grid Container */}
         <div className="flex-1 flex items-center justify-center">
           <div className="aspect-square h-full max-h-[700px] border border-border-muted bg-surface/20 rounded-xl relative grid-bg p-4 shadow-[0_0_50px_rgba(0,245,255,0.05)] overflow-hidden">
-            <ArenaRenderer arenaId={currentArenaId} gridSize={arena ? Number(arena.gridSize) : 20} />
+            <ArenaRenderer 
+              arenaId={currentArenaId} 
+              gridSize={arena ? Number(arena.gridSize) : 20} 
+              onEventSpawn={handleEventSpawn}
+            />
           </div>
         </div>
 

@@ -10,7 +10,11 @@ export interface ArenaLogEvent {
   message: React.ReactNode;
 }
 
-export function useArenaEvents(arenaId: bigint) {
+export function useArenaEvents(
+  arenaId: bigint,
+  creaturesData: any[],
+  spawnFn: ((x: number, y: number, type: 'spark' | 'birth' | 'death') => void) | null
+) {
   const [logs, setLogs] = useState<ArenaLogEvent[]>([]);
 
   const addLog = useCallback((log: Omit<ArenaLogEvent, 'id' | 'timestamp'>) => {
@@ -35,6 +39,11 @@ export function useArenaEvents(arenaId: bigint) {
           type: 'born',
           message: <><span className="text-primary">#{log.args.creatureId?.toString()}</span> was born via genome <span className="text-slate-400">{log.args.genome?.toString().slice(0, 10)}...</span></>
         });
+        
+        // Spawn birth particle if we know where the parent/child is
+        // We'll just guess from liveCreatures array for visual sake, or default to center
+        const c = creaturesData.find(cr => cr.id.toString() === log.args.creatureId?.toString());
+        if (c && spawnFn) spawnFn(c.x, c.y, 'birth');
       });
     },
   });
@@ -50,6 +59,9 @@ export function useArenaEvents(arenaId: bigint) {
           type: 'died',
           message: <><span className="text-slate-400">#{log.args.creatureId?.toString()}</span> perished at round {log.args.round?.toString()}</>
         });
+        
+        const c = creaturesData.find(cr => cr.id.toString() === log.args.creatureId?.toString());
+        if (c && spawnFn) spawnFn(c.x, c.y, 'death');
       });
     },
   });
@@ -65,6 +77,10 @@ export function useArenaEvents(arenaId: bigint) {
           type: 'combat',
           message: <><span className="text-primary">#{log.args.attackerId?.toString()}</span> attacked <span className="text-accent-cyan">#{log.args.defenderId?.toString()}</span> (dmg: {log.args.damageDealt?.toString()})</>
         });
+        
+        // Spawn sparks at the defender's location
+        const defender = creaturesData.find(cr => cr.id.toString() === log.args.defenderId?.toString());
+        if (defender && spawnFn) spawnFn(defender.x, defender.y, 'spark');
       });
     },
   });
