@@ -6,6 +6,8 @@ import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
 import { config } from './config/wagmi'
 import './index.css'
 import App from './App.tsx'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { LandingPage } from './pages/LandingPage'
 
 const queryClient = new QueryClient()
 
@@ -14,7 +16,12 @@ createRoot(document.getElementById('root')!).render(
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider theme={darkTheme({ accentColor: '#f4259d' })}>
-          <App />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/arena" element={<App />} />
+            </Routes>
+          </BrowserRouter>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

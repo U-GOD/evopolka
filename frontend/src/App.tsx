@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { ConnectButton } from './components/ConnectButton';
 import { ArenaRenderer } from './components/ArenaRenderer';
 import { useArena, useCreateArena, useJoinArena, useRunRound } from './hooks/useArena';
@@ -61,12 +62,14 @@ function App() {
     <div className="flex h-screen w-full bg-background-dark text-slate-100 font-display overflow-hidden">
       {/* Left Sidebar: Lobby & Controls */}
       <aside className="w-80 flex flex-col border-r border-border-muted bg-surface/50 p-6 gap-6">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-primary rounded-lg flex items-center justify-center w-10 h-10">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/><path d="M12 21v-2"/></svg>
+        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <div className="w-8 h-8 rounded-lg bg-primary rotate-45 flex items-center justify-center shadow-[0_0_15px_rgba(244,37,157,0.5)]">
+            <div className="w-3 h-3 bg-background-dark rounded-sm"></div>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">EvoPolka</h1>
-        </div>
+          <h1 className="text-2xl font-black tracking-tight text-white mt-1">
+            EVO<span className="text-primary">POLKA</span>
+          </h1>
+        </Link>
         
         <ConnectButton />
 
