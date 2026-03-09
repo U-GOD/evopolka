@@ -571,4 +571,23 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
     ) external view returns (uint256[] memory) {
         return arenaCreatureIds[arenaId];
     }
+
+    /// @notice Read the full Arena struct
+    function getArena(uint256 arenaId) external view returns (Arena memory) {
+        return arenas[arenaId];
+    }
+
+    /// @notice Read all creatures in the arena efficiently
+    function getAllCreatures(
+        uint256 arenaId
+    ) external view returns (CreatureLib.Creature[] memory) {
+        uint256[] memory ids = arenaCreatureIds[arenaId];
+        CreatureLib.Creature[] memory creatures = new CreatureLib.Creature[](
+            ids.length
+        );
+        for (uint256 i = 0; i < ids.length; i++) {
+            creatures[i] = arenaCreatures[arenaId][ids[i]];
+        }
+        return creatures;
+    }
 }
