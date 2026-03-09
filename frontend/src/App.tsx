@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { ConnectButton } from './components/ConnectButton';
 import { ArenaRenderer } from './components/ArenaRenderer';
 import { useArena, useCreateArena, useJoinArena, useRunRound } from './hooks/useArena';
+import { useCreatures } from './hooks/useCreatures';
+import { useArenaEvents } from './hooks/useArenaEvents';
 import { useAccount } from 'wagmi';
 import { parseEther } from 'viem';
 
@@ -13,6 +15,11 @@ function App() {
   
   const { address } = useAccount();
   const { arena } = useArena(currentArenaId);
+  const { creatures } = useCreatures(currentArenaId);
+  const { logs } = useArenaEvents(currentArenaId);
+  
+  const liveCreatures = (creatures as any[]) || [];
+  
   const { create, isPending: isCreating } = useCreateArena();
   const { join, isPending: isJoining } = useJoinArena();
   const { run, isPending: isRunning } = useRunRound();
@@ -181,34 +188,17 @@ function App() {
                 </tr>
               </thead>
               <tbody className="text-sm">
-                <tr className="border-b border-white/5 hover:bg-white/5 transition-colors group">
-                  <td className="py-3 font-mono text-slate-400">#045</td>
-                  <td className="py-3 font-medium text-white">Xerxes_v2</td>
-                  <td className="py-3 text-right">
-                    <span className="bg-primary/20 text-primary px-2 py-0.5 rounded text-[10px] font-bold uppercase">STR: 92</span>
-                  </td>
-                </tr>
-                <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="py-3 font-mono text-slate-400">#012</td>
-                  <td className="py-3 font-medium text-white">QuantumLich</td>
-                  <td className="py-3 text-right">
-                    <span className="bg-accent-cyan/20 text-accent-cyan px-2 py-0.5 rounded text-[10px] font-bold uppercase">INT: 88</span>
-                  </td>
-                </tr>
-                <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="py-3 font-mono text-slate-400">#022</td>
-                  <td className="py-3 font-medium text-white">MetaZilla</td>
-                  <td className="py-3 text-right">
-                    <span className="bg-emerald-400/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold uppercase">ENE: 74</span>
-                  </td>
-                </tr>
-                <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="py-3 font-mono text-slate-400">#108</td>
-                  <td className="py-3 font-medium text-white">0xGhost</td>
-                  <td className="py-3 text-right">
-                    <span className="bg-primary/20 text-primary px-2 py-0.5 rounded text-[10px] font-bold uppercase">STR: 61</span>
-                  </td>
-                </tr>
+                {liveCreatures.sort((a, b) => Number(b.hp) - Number(a.hp)).slice(0, 10).map((c) => (
+                  <tr key={c.id.toString()} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
+                    <td className="py-3 font-mono text-slate-400">#{c.id.toString().padStart(3, '0')}</td>
+                    <td className="py-3 font-medium text-white">{c.owner.slice(0, 6)}..{c.owner.slice(-4)}</td>
+                    <td className="py-3 text-right">
+                      <span className="bg-primary/20 text-primary px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                        HP: {c.hp.toString()}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -220,17 +210,18 @@ function App() {
             <h3 className="text-xs uppercase tracking-widest text-slate-500 font-bold">Evolution Log</h3>
             <span className="w-2 h-2 rounded-full bg-accent-cyan animate-pulse"></span>
           </div>
-          <div className="flex-1 overflow-y-auto terminal-scroll font-mono text-[11px] space-y-2 text-slate-400">
-            <p><span className="text-slate-600">[02:14:01]</span> <span className="text-primary">#045</span> eliminated <span className="text-accent-cyan">#012</span> at (12, 14)</p>
-            <p><span className="text-slate-600">[02:14:05]</span> <span className="text-emerald-400">#022</span> consumed nutrient pack at (05, 18)</p>
-            <p><span className="text-slate-600">[02:14:08]</span> <span className="text-accent-cyan">#089</span> spawned offspring <span className="text-white">#090</span></p>
-            <p><span className="text-slate-600">[02:14:12]</span> <span className="text-primary">#104</span> mutated: <span className="text-yellow-400">Hyper-Aggression</span></p>
-            <p><span className="text-slate-600">[02:14:15]</span> <span className="text-slate-500">Global Event: Nutrient Fog initiated</span></p>
-            <p><span className="text-slate-600">[02:14:19]</span> <span className="text-primary">#045</span> eliminated <span className="text-slate-200">#112</span> at (11, 14)</p>
-            <p><span className="text-slate-600">[02:14:21]</span> <span className="text-emerald-400">#022</span> reached maturity stage 3</p>
-            <p><span className="text-slate-600">[02:14:22]</span> <span className="text-accent-cyan">#090</span> DNA sequence synchronized</p>
-            <p><span className="text-slate-600">[02:14:25]</span> Simulation block 1,422,091 verified on-chain</p>
-          </div>
+            {logs.length === 0 ? (
+              <p className="text-slate-500 italic text-center mt-4">No events yet...</p>
+            ) : (
+              logs.map((log) => (
+                <p key={log.id}>
+                  <span className="text-slate-600">
+                    [{log.timestamp.toLocaleTimeString([], { hour12: false })}]
+                  </span>{' '}
+                  {log.message}
+                </p>
+              ))
+            )}
         </div>
       </aside>
     </div>
