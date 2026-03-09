@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { useCreatures } from '../hooks/useCreatures';
 
 // Types mapping what we get from the contract
@@ -28,7 +28,7 @@ interface ArenaRendererProps {
 export function ArenaRenderer({ arenaId, gridSize }: ArenaRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(0);
   
   // Real-time creatures from chain (polling)
   const { creatures } = useCreatures(arenaId);
