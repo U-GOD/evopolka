@@ -32,7 +32,7 @@ export function useCreateArena() {
       address: ARENA_ADDRESS,
       abi: arenaAbi,
       functionName: 'createArena',
-      args: [parseEther(stakeDot), BigInt(gridSize), BigInt(maxRounds)],
+      args: [parseEther(stakeDot), BigInt(maxRounds), BigInt(gridSize), BigInt(5), BigInt(500), BigInt(10)], // 5 per player, 5% mutation, 10 blocks/round
     });
   };
 
@@ -76,4 +76,23 @@ export function useRunRound() {
   };
 
   return { run, hash, isPending, isWaiting, isSuccess };
+}
+
+export function useTriggerDisaster() {
+  const { writeContractAsync, data: hash, isPending } = useWriteContract();
+  
+  const { isLoading: isWaiting, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  const trigger = async (arenaId: bigint, disasterType: number) => {
+    return writeContractAsync({
+      address: ARENA_ADDRESS,
+      abi: arenaAbi,
+      functionName: 'triggerDisaster',
+      args: [arenaId, disasterType],
+    });
+  };
+
+  return { trigger, hash, isPending, isWaiting, isSuccess };
 }
