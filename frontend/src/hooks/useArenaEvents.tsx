@@ -85,5 +85,27 @@ export function useArenaEvents(
     },
   });
 
+  useWatchContractEvent({
+    address: ARENA_ADDRESS,
+    abi: arenaAbi,
+    eventName: 'DisasterTriggered',
+    onLogs(contractLogs: any[]) {
+      contractLogs.forEach(log => {
+        if (log.args.arenaId !== arenaId) return;
+        const types = ['ASTEROID STRIKE', 'PLAGUE', 'ICE AGE', 'MUTATION STORM'];
+        const pType = log.args.disasterType !== undefined ? Number(log.args.disasterType) : 0;
+        const typeName = types[pType] || 'UNKNOWN DISASTER';
+        
+        addLog({
+          type: 'global',
+          message: <><span className="text-white font-black bg-red-600 px-2 py-0.5 rounded">⚠️ DISASTER: {typeName}</span></>
+        });
+        
+        // Trigger a huge burst of particles from the center to simulate the disaster
+        if (spawnFn) spawnFn(10, 10, pType === 2 ? 'ice' : 'disaster' as any);
+      });
+    },
+  });
+
   return { logs, addLog };
 }
