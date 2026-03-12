@@ -1,5 +1,4 @@
 import { ConnectButton as RainbowConnectButton } from '@rainbow-me/rainbowkit';
-import React from 'react';
 
 export function ConnectButton() {
   return (
