@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {
-    ReentrancyGuard
-} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {CreatureLib} from "./libraries/CreatureLib.sol";
-import {EvolutionEngine} from "./libraries/EvolutionEngine.sol";
-import {EntropyLib} from "./libraries/EntropyLib.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "./libraries/CreatureLib.sol";
+import "./libraries/EvolutionEngine.sol";
+import "./libraries/EntropyLib.sol";
+import "./interfaces/IXCM.sol";
 
 /// @title EvoPolkaArena
 /// @notice Core orchestrator for the on-chain genetic evolution game on Polkadot Hub
@@ -688,5 +687,25 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
             creatures[i] = arenaCreatures[arenaId][ids[i]];
         }
         return creatures;
+    // ------------------------------------------------------------------------
+    // Stretch Goal: XCM Precompile Interface
+    // ------------------------------------------------------------------------
+
+    address constant XCM_PRECOMPILE = 0x0000000000000000000000000000000000000000000000000000000000000000000a0000;
+
+    /// @notice Scaffold function to send XCM cross-chain stakes to another parachain
+    /// @param destChainId The destination parachain ID
+    /// @param amount amount to send cross-chain (with XCM payload)
+    function sendCrossChainStake(uint32 destChainId, uint256 amount) external payable onlyOwner {
+        require(amount > 0, "Amount must be > 0");
+
+        // Encode a dummy payload
+        bytes memory payload = abi.encodePacked("STAKE", amount);
+
+        // Call the XCM precompile to dispatch
+        // Note: Using staticcall/call pattern since precompile might not exist on local testnet
+        if (XCM_PRECOMPILE.code.length > 0) {
+            IXCM(XCM_PRECOMPILE).executeCrossChain{value: amount}(destChainId, payload);
+        }
     }
 }
