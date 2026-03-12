@@ -12,6 +12,11 @@ contract ArenaHarness is EvoPolkaArena {
         arenas[arenaId].state = state;
     }
 
+    /// @notice Force-set arena round number
+    function setRoundNumber(uint256 arenaId, uint256 round) external {
+        arenas[arenaId].roundNumber = round;
+    }
+
     /// @notice Explicitly kill a creature for testing
     function killCreature(uint256 arenaId, uint256 creatureId) external {
         arenaCreatures[arenaId][creatureId].alive = false;
