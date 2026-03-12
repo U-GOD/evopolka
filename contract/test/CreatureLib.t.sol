@@ -90,7 +90,7 @@ contract CreatureLibTest is Test {
         );
     }
 
-    function test_Mutate_ZeroRate() public pure {
+    function test_Mutate_ZeroRate() public view {
         bytes32 genome = bytes32(
             0x1234567800000000000000000000000000000000000000000000000000000000
         );
@@ -98,7 +98,7 @@ contract CreatureLibTest is Test {
         assertEq(mutated, genome);
     }
 
-    function test_Mutate_HighRate() public pure {
+    function test_Mutate_HighRate() public view {
         bytes32 genome = bytes32(
             0x0000000000000000000000000000000000000000000000000000000000000000
         );

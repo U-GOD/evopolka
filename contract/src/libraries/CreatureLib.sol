@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {EntropyLib} from "./EntropyLib.sol";
+
 /// @title CreatureLib
 /// @notice Genetic algorithm encoding, decoding, mutation, and crossover for EvoPolka creatures
 library CreatureLib {
@@ -86,7 +88,7 @@ library CreatureLib {
         bytes32 genome,
         uint256 mutationRateBp,
         uint256 entropy
-    ) internal pure returns (bytes32 mutatedGenome) {
+    ) internal view returns (bytes32 mutatedGenome) {
         if (mutationRateBp == 0) return genome;
 
         uint256 g = uint256(genome);
@@ -94,7 +96,7 @@ library CreatureLib {
         uint256 currentEntropy = entropy;
 
         for (uint256 i = 0; i < numMutations; i++) {
-            currentEntropy = uint256(keccak256(abi.encode(currentEntropy)));
+            currentEntropy = uint256(EntropyLib.getEntropy(abi.encode(currentEntropy)));
             uint256 bitToFlip = currentEntropy % 256;
             g ^= (uint256(1) << bitToFlip);
         }

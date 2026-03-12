@@ -8,6 +8,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {CreatureLib} from "./libraries/CreatureLib.sol";
 import {EvolutionEngine} from "./libraries/EvolutionEngine.sol";
+import {EntropyLib} from "./libraries/EntropyLib.sol";
 
 /// @title EvoPolkaArena
 /// @notice Core orchestrator for the on-chain genetic evolution game on Polkadot Hub
@@ -463,7 +464,7 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
     function _spawnRandomCreature(uint256 arenaId, address owner) internal {
         uint256 cId = nextCreatureId++;
 
-        bytes32 randomGenome = keccak256(
+        bytes32 randomGenome = EntropyLib.getEntropy(
             abi.encode(block.prevrandao, block.number, owner, cId)
         );
 
@@ -505,11 +506,11 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
             energy: 100,
             hp: 100,
             x: uint8(
-                uint256(keccak256(abi.encode(randomGenome, "X"))) %
+                uint256(EntropyLib.getEntropy(abi.encode(randomGenome, "X"))) %
                     arenas[arenaId].gridSize
             ),
             y: uint8(
-                uint256(keccak256(abi.encode(randomGenome, "Y"))) %
+                uint256(EntropyLib.getEntropy(abi.encode(randomGenome, "Y"))) %
                     arenas[arenaId].gridSize
             ),
             generation: 1,
@@ -535,7 +536,7 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
 
         while (spawned < count && attempts < maxAttempts) {
             uint256 entropy = uint256(
-                keccak256(
+                EntropyLib.getEntropy(
                     abi.encode(
                         block.prevrandao,
                         block.number,

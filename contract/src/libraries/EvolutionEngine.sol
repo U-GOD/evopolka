@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {CreatureLib} from "./CreatureLib.sol";
+import {EntropyLib} from "./EntropyLib.sol";
 
 /// @title EvolutionEngine
 /// @notice Library implementing the 5 evolution phases with gas-safe batching
@@ -46,7 +47,7 @@ library EvolutionEngine {
             }
             c.energy -= moveCost;
 
-            bytes32 entropy = keccak256(
+            bytes32 entropy = EntropyLib.getEntropy(
                 abi.encode(block.prevrandao, roundNumber, c.id)
             );
             uint256 direction = uint256(entropy) % 4;
@@ -253,7 +254,7 @@ library EvolutionEngine {
                 pB.energy -= 50;
 
                 uint256 entropy = uint256(
-                    keccak256(
+                    EntropyLib.getEntropy(
                         abi.encode(
                             block.prevrandao,
                             nextCreatureIdRef,
