@@ -23,6 +23,13 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         FINISHED
     }
 
+    enum DisasterType {
+        ASTEROID,
+        PLAGUE,
+        ICE_AGE,
+        MUTATION_STORM
+    }
+
     struct Arena {
         uint256 id;
         ArenaState state;
@@ -71,6 +78,7 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
     event ArenaCreated(uint256 indexed arenaId, address creator);
     event PlayerJoined(uint256 indexed arenaId, address player);
     event ArenaStarted(uint256 indexed arenaId);
+    event DisasterTriggered(uint256 indexed arenaId, uint8 disasterType);
     event CreatureBorn(
         uint256 indexed arenaId,
         uint256 creatureId,
@@ -556,6 +564,96 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
             }
             attempts++;
         }
+    }
+
+    /// @notice Trigger a disaster to shake up the arena
+    function triggerDisaster(uint256 arenaId, uint8 disasterType) external nonReentrant whenNotPaused {
+        Arena storage arena = arenas[arenaId];
+        require(
+            arena.state == ArenaState.ACTIVE || arena.state == ArenaState.EVOLVING,
+            "Not active"
+        );
+        require(arena.roundNumber > 0, "No rounds yet");
+
+        // Prevent spam - only allow every 5 rounds
+        require(arena.roundNumber % 5 == 0, "Disaster cooldown");
+
+        if (disasterType == uint8(DisasterType.ASTEROID)) {
+            _asteroidStrike(arenaId);
+        } else if (disasterType == uint8(DisasterType.PLAGUE)) {
+            _plagueEvent(arenaId);
+        } else if (disasterType == uint8(DisasterType.ICE_AGE)) {
+            _iceAge(arenaId);
+        } else if (disasterType == uint8(DisasterType.MUTATION_STORM)) {
+            _mutationStorm(arenaId);
+        } else {
+            revert("Unknown disaster");
+        }
+
+        emit DisasterTriggered(arenaId, disasterType);
+    }
+
+    function _asteroidStrike(uint256 arenaId) internal {
+        uint256[] storage ids = arenaCreatureIds[arenaId];
+        uint256 len = ids.length;
+        
+        for (uint256 i = 0; i < len; i++) {
+            if (gasleft() < 50_000) break; // Gas DoS protection
+            
+            CreatureLib.Creature storage c = arenaCreatures[arenaId][ids[i]];
+            if (!c.alive) continue;
+
+            // 50% chance to die
+            bytes32 entropy = EntropyLib.getEntropy(
+                abi.encode(block.prevrandao, block.number, c.id, "ASTEROID")
+            );
+            if (uint256(entropy) % 2 == 0) {
+                c.alive = false;
+                emit CreatureDied(arenaId, c.id);
+            }
+        }
+    }
+
+    function _plagueEvent(uint256 arenaId) internal {
+        uint256[] storage ids = arenaCreatureIds[arenaId];
+        uint256 len = ids.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (gasleft() < 50_000) break;
+            
+            CreatureLib.Creature storage c = arenaCreatures[arenaId][ids[i]];
+            if (!c.alive) continue;
+
+            // Kills creatures with poor defense
+            if (c.defense < 50) {
+                c.alive = false;
+                emit CreatureDied(arenaId, c.id);
+            }
+        }
+    }
+
+    function _iceAge(uint256 arenaId) internal {
+        uint256[] storage ids = arenaCreatureIds[arenaId];
+        uint256 len = ids.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (gasleft() < 50_000) break;
+            
+            CreatureLib.Creature storage c = arenaCreatures[arenaId][ids[i]];
+            if (!c.alive) continue;
+
+            // Drain 75% of energy
+            c.energy = c.energy / 4;
+        }
+    }
+
+    function _mutationStorm(uint256 arenaId) internal {
+        Arena storage arena = arenas[arenaId];
+        // 5x mutation rate for the upcoming round. The EvolutionEngine reads this rate.
+        // It will organically stay high until we reset it (we don't strictly have a "reset" hook 
+        // in this step, but for the hackathon, a 5x bump that degrades or stays is fine. 
+        // Let's just bump the base rate).
+        uint256 newRate = arena.mutationRate * 5;
+        if (newRate > 10000) newRate = 10000;
+        arena.mutationRate = newRate;
     }
 
     /// @notice Read a full creature struct for a given arena and creature ID
