@@ -1,12 +1,11 @@
-import React, { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ConnectButton } from './components/ConnectButton';
 import { ArenaRenderer } from './components/ArenaRenderer';
-import { useArena, useCreateArena, useJoinArena, useRunRound } from './hooks/useArena';
+import { useArena, useCreateArena, useJoinArena, useRunRound, useTriggerDisaster } from './hooks/useArena';
 import { useCreatures } from './hooks/useCreatures';
 import { useArenaEvents } from './hooks/useArenaEvents';
 import { useAccount } from 'wagmi';
-import { parseEther } from 'viem';
 
 function App() {
   const [arenaIdInput, setArenaIdInput] = useState('1');
@@ -31,6 +30,7 @@ function App() {
   const { create, isPending: isCreating } = useCreateArena();
   const { join, isPending: isJoining } = useJoinArena();
   const { run, isPending: isRunning } = useRunRound();
+  const { trigger, isPending: isTriggering } = useTriggerDisaster();
 
   const handleCreateArena = async () => {
     try {
@@ -120,6 +120,24 @@ function App() {
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
           {isRunning ? 'Processing...' : 'Run Round'}
         </button>
+
+        <div className="flex flex-col gap-2 mt-4">
+          <h3 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Trigger Disaster</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <button disabled={isTriggering || !arena || arena.state !== 1} onClick={() => trigger(currentArenaId, 0)} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold py-2 rounded-lg disabled:opacity-30 transition-all">
+              ☄️ Asteroid
+            </button>
+            <button disabled={isTriggering || !arena || arena.state !== 1} onClick={() => trigger(currentArenaId, 1)} className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 text-xs font-bold py-2 rounded-lg disabled:opacity-30 transition-all">
+              ☣️ Plague
+            </button>
+            <button disabled={isTriggering || !arena || arena.state !== 1} onClick={() => trigger(currentArenaId, 2)} className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold py-2 rounded-lg disabled:opacity-30 transition-all">
+              ❄️ Ice Age
+            </button>
+            <button disabled={isTriggering || !arena || arena.state !== 1} onClick={() => trigger(currentArenaId, 3)} className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 text-xs font-bold py-2 rounded-lg disabled:opacity-30 transition-all">
+              🧬 Mut. Storm
+            </button>
+          </div>
+        </div>
       </aside>
 
       {/* Center Main View: Evolution Grid */}
