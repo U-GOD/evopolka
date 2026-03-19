@@ -137,12 +137,12 @@ contract DisasterTest is Test {
     }
 
     function test_MutationStorm_IncreasesRate() public {
-        EvoPolkaArena.Arena memory preArena = arena.getArena(arenaId);
-        assertEq(preArena.mutationRate, 500, "Should start at 5% (500 bps)");
+        (,,,,,,,,uint256 preMutationRate,,) = arena.getArena(arenaId);
+        assertEq(preMutationRate, 500, "Should start at 5% (500 bps)");
 
         arena.triggerDisaster(arenaId, uint8(EvoPolkaArena.DisasterType.MUTATION_STORM));
 
-        EvoPolkaArena.Arena memory postArena = arena.getArena(arenaId);
-        assertEq(postArena.mutationRate, 2500, "Should increase 5x to 25% (2500 bps)");
+        (,,,,,,,,uint256 postMutationRate,,) = arena.getArena(arenaId);
+        assertEq(postMutationRate, 2500, "Should increase 5x to 25% (2500 bps)");
     }
 }

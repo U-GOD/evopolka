@@ -453,13 +453,13 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
             }
         }
 
-        if (
-            arena.roundNumber >= arena.maxRounds ||
-            (!multipleOwners && survivorCount > 0)
-        ) {
+        bool maxRoundsReached = arena.roundNumber >= arena.maxRounds;
+        bool singleOwnerVictory = !multipleOwners && survivorCount > 0 && arena.roundNumber >= 5;
+
+        if (maxRoundsReached || singleOwnerVictory) {
             arena.state = ArenaState.FINISHED;
         } else if (survivorCount == 0) {
-            arena.state = ArenaState.FINISHED; // everyone died!
+            arena.state = ArenaState.FINISHED;
         } else {
             arena.state = ArenaState.ACTIVE;
         }
@@ -670,9 +670,34 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         return arenaCreatureIds[arenaId];
     }
 
-    /// @notice Read the full Arena struct
-    function getArena(uint256 arenaId) external view returns (Arena memory) {
-        return arenas[arenaId];
+    /// @notice Read arena data as individual fields (avoids PVM struct return encoding issues)
+    function getArena(uint256 arenaId) external view returns (
+        uint256 id,
+        uint8 state,
+        uint256 stakePerPlayer,
+        uint256 totalPot,
+        uint256 roundNumber,
+        uint256 maxRounds,
+        uint256 gridSize,
+        uint256 creaturesPerPlayer,
+        uint256 mutationRate,
+        uint256 lastRoundBlock,
+        uint256 roundInterval
+    ) {
+        Arena storage a = arenas[arenaId];
+        return (
+            a.id,
+            uint8(a.state),
+            a.stakePerPlayer,
+            a.totalPot,
+            a.roundNumber,
+            a.maxRounds,
+            a.gridSize,
+            a.creaturesPerPlayer,
+            a.mutationRate,
+            a.lastRoundBlock,
+            a.roundInterval
+        );
     }
 
     /// @notice Read all creatures in the arena efficiently
