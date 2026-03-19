@@ -6,7 +6,8 @@
 
 @layer base {
   body {
-    @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display h-screen overflow-hidden;
+    @apply text-slate-100 font-display min-h-screen;
+    background-color: #0a0a12; /* Force dark background always */
   }
 }
 

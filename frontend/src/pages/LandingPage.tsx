@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Cpu, Dna, Trophy } from 'lucide-react';
+import { ConnectButton } from '../components/ConnectButton';
 
 export function LandingPage() {
   return (
@@ -19,11 +20,7 @@ export function LandingPage() {
             <Link to="/arena" className="hover:text-primary transition-colors">Arena</Link>
             <a className="hover:text-primary transition-colors cursor-pointer">Leaderboard</a>
             <a className="hover:text-primary transition-colors cursor-pointer">Docs</a>
-            <Link to="/arena">
-              <button className="rounded-lg border border-accent-cyan text-accent-cyan px-5 py-2 hover:bg-accent-cyan/10 transition-all">
-                Connect Wallet
-              </button>
-            </Link>
+            <ConnectButton />
           </div>
         </div>
       </nav>
@@ -137,7 +134,50 @@ export function LandingPage() {
             </div>
           </div>
         </section>
-        {/* END: Features Grid */}
+        {/* BEGIN: How It Works */}
+        <section className="py-24 relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 blur-[120px] rounded-full pointer-events-none"></div>
+          <div className="mx-auto max-w-7xl px-6 relative z-10">
+            <div className="mb-16 text-center">
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">How It Works</h2>
+              <p className="mt-4 text-slate-400 max-w-2xl mx-auto">From DNA generation to claiming the prize pot, the entire lifecycle is verifiable on the Polkadot Virtual Machine.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
+              {/* Connecting Line */}
+              <div className="hidden md:block absolute top-12 left-[12%] right-[12%] h-0.5 bg-gradient-to-r from-primary/10 via-accent-cyan/20 to-accent-mint/10 z-0"></div>
+              
+              {/* Step 1 */}
+              <div className="relative z-10 text-center">
+                <div className="w-24 h-24 mx-auto glass-panel rounded-full flex items-center justify-center text-3xl font-black text-white border-primary/30 shadow-[0_0_30px_rgba(244,37,157,0.15)] mb-6">1</div>
+                <h3 className="text-xl font-bold mb-2 text-white">Stake & Spawn</h3>
+                <p className="text-sm text-slate-400">Deposit PAS tokens into the smart contract to mint a creature with a randomized 256-bit genome.</p>
+              </div>
+              
+              {/* Step 2 */}
+              <div className="relative z-10 text-center md:mt-12">
+                <div className="w-24 h-24 mx-auto glass-panel rounded-full flex items-center justify-center text-3xl font-black text-white border-accent-cyan/30 shadow-[0_0_30px_rgba(0,245,255,0.15)] mb-6">2</div>
+                <h3 className="text-xl font-bold mb-2 text-white">Automata Engine</h3>
+                <p className="text-sm text-slate-400">The game ticks block-by-block. Creatures move autonomously, forage for food, and attack weak neighbors based on their DNA stats.</p>
+              </div>
+              
+              {/* Step 3 */}
+              <div className="relative z-10 text-center">
+                <div className="w-24 h-24 mx-auto glass-panel rounded-full flex items-center justify-center text-3xl font-black text-white border-purple-500/30 shadow-[0_0_30px_rgba(168,85,247,0.15)] mb-6">3</div>
+                <h3 className="text-xl font-bold mb-2 text-white">Mutate & Breed</h3>
+                <p className="text-sm text-slate-400">Top performers cross over their genes to spawn the next generation. A cryptographic hash provides entropy for mutations.</p>
+              </div>
+              
+              {/* Step 4 */}
+              <div className="relative z-10 text-center md:mt-12">
+                <div className="w-24 h-24 mx-auto glass-panel rounded-full flex items-center justify-center text-3xl font-black text-white border-accent-mint/30 shadow-[0_0_30px_rgba(52,211,153,0.15)] mb-6">4</div>
+                <h3 className="text-xl font-bold mb-2 text-white">Survival of the Fittest</h3>
+                <p className="text-sm text-slate-400">The simulation ends after N rounds. Owners of surviving creatures pull their share of the aggregated token prize pool.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        {/* END: How It Works */}
 
         {/* BEGIN: Call to Action */}
         <section className="py-24 relative">
