@@ -2,20 +2,34 @@ import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 
 import { arenaAbi } from '../config/abi';
 import { parseEther } from 'viem';
 
-// TODO: Replace with deployed address on Polkadot testnet
-export const ARENA_ADDRESS = '0xa5262b3CF38fA74010A3873974b17EF53b81deE3';
+export const ARENA_ADDRESS = '0x0b9496919b87bed8cd568209a9366e8078b78a4d';
 
 export function useArena(arenaId: bigint) {
-  const { data: arena, refetch: refetchArena } = useReadContract({
+  const { data: rawArena, refetch: refetchArena } = useReadContract({
     address: ARENA_ADDRESS,
     abi: arenaAbi,
     functionName: 'getArena',
     args: [arenaId],
     query: {
       enabled: arenaId > 0n,
-      refetchInterval: 6000, // Poll every 6 seconds
+      refetchInterval: 6000,
     }
   });
+
+  // Map the tuple back to an object since the contract was changed to return individual vars
+  const arena = rawArena ? {
+    id: (rawArena as any)[0],
+    state: (rawArena as any)[1],
+    stakePerPlayer: (rawArena as any)[2],
+    totalPot: (rawArena as any)[3],
+    roundNumber: (rawArena as any)[4],
+    maxRounds: (rawArena as any)[5],
+    gridSize: (rawArena as any)[6],
+    creaturesPerPlayer: (rawArena as any)[7],
+    mutationRate: (rawArena as any)[8],
+    lastRoundBlock: (rawArena as any)[9],
+    roundInterval: (rawArena as any)[10],
+  } : undefined;
 
   return { arena, refetchArena };
 }
@@ -32,7 +46,8 @@ export function useCreateArena() {
       address: ARENA_ADDRESS,
       abi: arenaAbi,
       functionName: 'createArena',
-      args: [parseEther(stakeDot), BigInt(maxRounds), BigInt(gridSize), BigInt(5), BigInt(500), BigInt(10)], // 5 per player, 5% mutation, 10 blocks/round
+      args: [parseEther(stakeDot), BigInt(maxRounds), BigInt(gridSize), BigInt(5), BigInt(500), BigInt(10)],
+      type: 'legacy',
     });
   };
 
@@ -53,10 +68,31 @@ export function useJoinArena() {
       functionName: 'joinArena',
       args: [arenaId],
       value: stakeAmount,
+      type: 'legacy',
     });
   };
 
   return { join, hash, isPending, isWaiting, isSuccess };
+}
+
+export function useStartArena() {
+  const { writeContractAsync, data: hash, isPending } = useWriteContract();
+
+  const { isLoading: isWaiting, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  const start = async (arenaId: bigint) => {
+    return writeContractAsync({
+      address: ARENA_ADDRESS,
+      abi: arenaAbi,
+      functionName: 'startArena',
+      args: [arenaId],
+      type: 'legacy',
+    });
+  };
+
+  return { start, hash, isPending, isWaiting, isSuccess };
 }
 
 export function useRunRound() {
@@ -72,6 +108,7 @@ export function useRunRound() {
       abi: arenaAbi,
       functionName: 'runEvolutionRound',
       args: [arenaId],
+      type: 'legacy',
     });
   };
 
@@ -91,6 +128,7 @@ export function useTriggerDisaster() {
       abi: arenaAbi,
       functionName: 'triggerDisaster',
       args: [arenaId, disasterType],
+      type: 'legacy',
     });
   };
 
