@@ -1,78 +1,35 @@
-import { ConnectButton as RainbowConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
 
 export function ConnectButton() {
+  const { address, isConnected } = useAccount();
+  const { connect, connectors, isPending } = useConnect();
+  const { disconnect } = useDisconnect();
+
+  if (isConnected && address) {
+    return (
+      <button
+        onClick={() => disconnect()}
+        type="button"
+        className="bg-surface hover:bg-surface/80 text-white border border-border-muted font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all px-6"
+      >
+        {address.slice(0, 6)}...{address.slice(-4)}
+      </button>
+    );
+  }
+
   return (
-    <RainbowConnectButton.Custom>
-      {({
-        account,
-        chain,
-        openAccountModal,
-        openChainModal,
-        openConnectModal,
-        authenticationStatus,
-        mounted,
-      }) => {
-        const ready = mounted && authenticationStatus !== 'loading';
-        const connected =
-          ready &&
-          account &&
-          chain &&
-          (!authenticationStatus || authenticationStatus === 'authenticated');
-
-        return (
-          <div
-            {...(!ready && {
-              'aria-hidden': true,
-              style: {
-                opacity: 0,
-                pointerEvents: 'none',
-                userSelect: 'none',
-              },
-            })}
-          >
-            {(() => {
-              if (!connected) {
-                return (
-                  <button
-                    onClick={openConnectModal}
-                    type="button"
-                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all px-6"
-                  >
-                    Connect Wallet
-                  </button>
-                );
-              }
-
-              if (chain.unsupported) {
-                return (
-                  <button
-                    onClick={openChainModal}
-                    type="button"
-                    className="w-full bg-red-500 hover:bg-red-400 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all px-6"
-                  >
-                    Wrong network
-                  </button>
-                );
-              }
-
-              return (
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <button
-                    onClick={openAccountModal}
-                    type="button"
-                    className="w-full bg-surface hover:bg-surface/80 text-white border border-border-muted font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all px-6"
-                  >
-                    {account.displayName}
-                    {account.displayBalance
-                      ? ` (${account.displayBalance})`
-                      : ''}
-                  </button>
-                </div>
-              );
-            })()}
-          </div>
-        );
+    <button
+      onClick={() => {
+        const injectedConnector = connectors.find((c) => c.type === 'injected');
+        if (injectedConnector) {
+          connect({ connector: injectedConnector });
+        }
       }}
-    </RainbowConnectButton.Custom>
+      disabled={isPending}
+      type="button"
+      className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all px-6 disabled:opacity-50"
+    >
+      {isPending ? 'Connecting...' : 'Connect Wallet'}
+    </button>
   );
 }

@@ -1,5 +1,5 @@
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { http } from 'wagmi';
+import { createConfig, http } from 'wagmi';
+import { injected } from 'wagmi/connectors';
 import { defineChain } from 'viem';
 
 export const polkadotHubTestnet = defineChain({
@@ -24,10 +24,11 @@ export const polkadotHubTestnet = defineChain({
   testnet: true,
 });
 
-export const config = getDefaultConfig({
-  appName: 'EvoPolka',
-  projectId: 'a52b8618eb0eb2bfbf454a8eef5bb676', // Mock WalletConnect project ID
+export const config = createConfig({
   chains: [polkadotHubTestnet],
+  connectors: [
+    injected(), // MetaMask, Talisman, SubWallet — any injected EVM wallet
+  ],
   transports: {
     [polkadotHubTestnet.id]: http(),
   },

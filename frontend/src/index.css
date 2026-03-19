@@ -1,4 +1,4 @@
-@import '@rainbow-me/rainbowkit/styles.css';
+/* Wallet connection handled by wagmi native hooks */
 
 @tailwind base;
 @tailwind components;
