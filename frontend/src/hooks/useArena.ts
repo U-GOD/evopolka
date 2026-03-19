@@ -3,7 +3,7 @@ import { arenaAbi } from '../config/abi';
 import { parseEther } from 'viem';
 
 // TODO: Replace with deployed address on Polkadot testnet
-export const ARENA_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const ARENA_ADDRESS = '0xa5262b3CF38fA74010A3873974b17EF53b81deE3';
 
 export function useArena(arenaId: bigint) {
   const { data: arena, refetch: refetchArena } = useReadContract({
