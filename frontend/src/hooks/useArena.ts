@@ -12,7 +12,7 @@ export function useArena(arenaId: bigint) {
     args: [arenaId],
     query: {
       enabled: arenaId > 0n,
-      refetchInterval: 6000,
+      refetchInterval: 2000,
     }
   });
 

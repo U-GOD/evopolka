@@ -13,8 +13,8 @@ function App() {
   const currentArenaId = BigInt(arenaIdInput || '0');
   
   const { address } = useAccount();
-  const { arena } = useArena(currentArenaId);
-  const { creatures } = useCreatures(currentArenaId);
+  const { arena, refetchArena } = useArena(currentArenaId);
+  const { creatures, refetchCreatures } = useCreatures(currentArenaId);
 
   // Particle spawner ref
   const spawnParticleRef = useRef<((x: number, y: number, type: 'spark' | 'birth' | 'death') => void) | null>(null);
@@ -67,12 +67,57 @@ function App() {
     }
   };
 
+  const [autoEvolving, setAutoEvolving] = useState(false);
+  const [autoRoundCount, setAutoRoundCount] = useState(0);
+  const autoEvolvingRef = useRef(false);
+
   const handleRunRound = async () => {
     try {
       await run(currentArenaId);
+      // Instant visual update
+      setTimeout(() => { refetchArena(); refetchCreatures(); }, 1000);
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const handleTriggerDisaster = async (type: number) => {
+    try {
+      await trigger(currentArenaId, type);
+      // Instant visual update
+      setTimeout(() => { refetchArena(); refetchCreatures(); }, 1000);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Auto-evolve: chain rounds automatically
+  const toggleAutoEvolve = async () => {
+    if (autoEvolving) {
+      autoEvolvingRef.current = false;
+      setAutoEvolving(false);
+      return;
+    }
+    autoEvolvingRef.current = true;
+    setAutoEvolving(true);
+    setAutoRoundCount(0);
+    let count = 0;
+    while (autoEvolvingRef.current) {
+      try {
+        await run(currentArenaId);
+        count++;
+        setAutoRoundCount(count);
+        // Refetch immediately after each round
+        await Promise.all([refetchArena(), refetchCreatures()]);
+        // Small delay to let UI render
+        await new Promise(r => setTimeout(r, 500));
+      } catch (e) {
+        console.error('Auto-evolve stopped:', e);
+        break;
+      }
+    }
+    autoEvolvingRef.current = false;
+    setAutoEvolving(false);
   };
 
   return (
@@ -164,29 +209,38 @@ function App() {
           )}
         </div>
 
-        {/* Run Round */}
-        <button disabled={isRunning || !arena || arenaState !== 1 || isCooldown} onClick={handleRunRound} className="w-full bg-accent-cyan/10 hover:bg-accent-cyan/20 disabled:opacity-30 text-accent-cyan border border-accent-cyan/30 font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-wider text-sm">
-          🚀 {isRunning ? 'Processing...' : isCooldown ? `Wait ${blocksUntilNext} blocks...` : 'Run Evolution Round'}
-        </button>
-
-        {/* Disaster Controls */}
-        <div className="flex flex-col gap-2">
-          <h3 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Trigger Disaster</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <button disabled={isTriggering || !arena || arenaState !== 1 || isCooldown} onClick={() => trigger(currentArenaId, 0)} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold py-2 rounded-lg disabled:opacity-30 transition-all">
-              ☄️ Asteroid
+        {/* Run Round + Auto-Evolve */}
+        {(arenaState === 1 || arenaState === 2) && (
+          <div className="flex flex-col gap-2">
+            <button disabled={isRunning || autoEvolving || isCooldown} onClick={handleRunRound} className="w-full bg-accent-cyan/10 hover:bg-accent-cyan/20 disabled:opacity-30 text-accent-cyan border border-accent-cyan/30 font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-wider text-sm">
+              🚀 {isRunning ? 'Processing...' : isCooldown ? `Wait ${blocksUntilNext} blocks...` : 'Run Evolution Round'}
             </button>
-            <button disabled={isTriggering || !arena || arenaState !== 1 || isCooldown} onClick={() => trigger(currentArenaId, 1)} className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 text-xs font-bold py-2 rounded-lg disabled:opacity-30 transition-all">
-              ☣️ Plague
-            </button>
-            <button disabled={isTriggering || !arena || arenaState !== 1 || isCooldown} onClick={() => trigger(currentArenaId, 2)} className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold py-2 rounded-lg disabled:opacity-30 transition-all">
-              ❄️ Ice Age
-            </button>
-            <button disabled={isTriggering || !arena || arenaState !== 1 || isCooldown} onClick={() => trigger(currentArenaId, 3)} className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 text-xs font-bold py-2 rounded-lg disabled:opacity-30 transition-all">
-              🧬 Mut. Storm
+            <button onClick={toggleAutoEvolve} className={`w-full font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all uppercase tracking-wider text-xs ${autoEvolving ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'}`}>
+              {autoEvolving ? `⏹ Stop Auto-Evolve (Round ${autoRoundCount})` : '▶️ Auto-Evolve (Hands-Free)'}
             </button>
           </div>
-        </div>
+        )}
+
+        {/* Disaster Controls */}
+        {(arenaState === 1 || arenaState === 2) && (
+          <div className="flex flex-col gap-2">
+            <h3 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Trigger Disaster</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button disabled={isTriggering || autoEvolving} onClick={() => handleTriggerDisaster(0)} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold py-2 rounded-lg disabled:opacity-30 transition-all">
+                ☄️ Asteroid
+              </button>
+              <button disabled={isTriggering || autoEvolving} onClick={() => handleTriggerDisaster(1)} className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 text-xs font-bold py-2 rounded-lg disabled:opacity-30 transition-all">
+                ☣️ Plague
+              </button>
+              <button disabled={isTriggering || autoEvolving} onClick={() => handleTriggerDisaster(2)} className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold py-2 rounded-lg disabled:opacity-30 transition-all">
+                ❄️ Ice Age
+              </button>
+              <button disabled={isTriggering || autoEvolving} onClick={() => handleTriggerDisaster(3)} className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 text-xs font-bold py-2 rounded-lg disabled:opacity-30 transition-all">
+                🧬 Mut. Storm
+              </button>
+            </div>
+          </div>
+        )}
       </aside>
 
       {/* Center Main View */}
