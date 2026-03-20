@@ -2,7 +2,7 @@ import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 
 import { arenaAbi } from '../config/abi';
 import { parseEther } from 'viem';
 
-export const ARENA_ADDRESS = '0x0b9496919b87bed8cd568209a9366e8078b78a4d';
+export const ARENA_ADDRESS = '0x57c189dc7aaee91a407f47a033f1049f41a7befd';
 
 export function useArena(arenaId: bigint) {
   const { data: rawArena, refetch: refetchArena } = useReadContract({
@@ -17,7 +17,8 @@ export function useArena(arenaId: bigint) {
   });
 
   // Map the tuple back to an object since the contract was changed to return individual vars
-  const arena = rawArena ? {
+  // Guard: if id is 0, the arena doesn't exist on-chain (IDs start at 1)
+  const arena = (rawArena && (rawArena as any)[0] !== 0n) ? {
     id: (rawArena as any)[0],
     state: (rawArena as any)[1],
     stakePerPlayer: (rawArena as any)[2],
@@ -46,7 +47,7 @@ export function useCreateArena() {
       address: ARENA_ADDRESS,
       abi: arenaAbi,
       functionName: 'createArena',
-      args: [parseEther(stakeDot), BigInt(maxRounds), BigInt(gridSize), BigInt(5), BigInt(500), BigInt(10)],
+      args: [parseEther(stakeDot), BigInt(maxRounds), BigInt(gridSize), BigInt(2), BigInt(500), BigInt(10)],
       type: 'legacy',
     });
   };

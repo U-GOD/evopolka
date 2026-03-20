@@ -34,7 +34,7 @@ function App() {
   const { trigger, isPending: isTriggering } = useTriggerDisaster();
 
   const ARENA_STATES = ['LOBBY', 'ACTIVE', 'EVOLVING', 'FINISHED'];
-  const arenaState = arena ? Number(arena.state) : -1;
+  const arenaState = arena?.state !== undefined ? Number(arena.state) : -1;
 
   const { data: currentBlockData } = useBlockNumber({ watch: true });
   const currentBlock = currentBlockData || 0n;
@@ -44,7 +44,7 @@ function App() {
   const handleCreateArena = async () => {
     try {
       if (!stakeInput) return;
-      await create(stakeInput, 20, 100);
+      await create(stakeInput, 10, 20);
     } catch (e) {
       console.error(e);
     }

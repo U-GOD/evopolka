@@ -1,0 +1,26 @@
+No files changed, compilation skipped
+Script ran successfully.
+
+## Setting up 1 EVM.
+
+==========================
+
+Chain 420420417
+
+Estimated gas price: 1000 gwei
+
+Estimated total gas used for script: 4990311
+
+Estimated amount required: 4.990311 ETH
+
+==========================
+
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+
+Transactions saved to: C:/Users/VANESSA/Documents/evopolka/contract/broadcast\DeployEvoPolkaArena.s.sol\420420417\run-latest.json
+
+Sensitive values saved to: C:/Users/VANESSA/Documents/evopolka/contract/cache\DeployEvoPolkaArena.s.sol\420420417\run-latest.json
+

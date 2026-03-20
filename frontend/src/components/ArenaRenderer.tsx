@@ -169,7 +169,7 @@ export function ArenaRenderer({ arenaId, gridSize, onEventSpawn }: ArenaRenderer
         const color = genomeToColor(c.genome, Number(c.hp));
         const glow = genomeToGlow(c.genome);
 
-        // Outer glow ring
+        // Outer glow ring (HP)
         ctx.save();
         ctx.shadowColor = glow;
         ctx.shadowBlur = 14 * hpNorm;
@@ -178,6 +178,19 @@ export function ArenaRenderer({ arenaId, gridSize, onEventSpawn }: ArenaRenderer
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
+
+        // Energy Display (White Dashed Ring)
+        const energyNorm = Math.max(0, Math.min(1, Number(c.energy) / 100));
+        if (energyNorm > 0) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([3, 4]); // dashed ring for energy
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius + 4, 0, Math.PI * 2 * energyNorm);
+            ctx.stroke();
+            ctx.restore();
+        }
 
         // Inner bright core
         ctx.save();

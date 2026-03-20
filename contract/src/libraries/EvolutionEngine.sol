@@ -14,8 +14,8 @@ library EvolutionEngine {
     uint8 constant PHASE_BREEDING = 4;
     uint8 constant PHASE_CULLING = 5;
 
-    uint256 constant MAX_BATCH = 20;
-    uint256 constant GAS_RESERVE = 50_000;
+    uint256 constant MAX_BATCH = 5;
+    uint256 constant GAS_RESERVE = 80_000;
 
     /// @notice Process the movement phase for a batch of creatures
     /// @return 0 if phase complete, otherwise the next startIndex to resume from
@@ -350,7 +350,7 @@ library EvolutionEngine {
         return (0, nextCreatureIdRef);
     }
 
-    /// @notice Process the culling phase
+    /// @notice Process the culling phase - zero heap allocation version safe for PVM
     function processCulling(
         mapping(uint256 => CreatureLib.Creature) storage creatures,
         uint256[] storage creatureIds,
@@ -358,12 +358,12 @@ library EvolutionEngine {
     ) internal returns (uint256) {
         uint256 len = creatureIds.length;
 
-        // Execute the whole culling phase in one shot to properly identify the bottom 20%
+        // Only run once per round (no resume-ability needed, gas protected by small batch)
         if (startIndex > 0) return 0;
 
         uint256 aliveCount = 0;
 
-        // Pass 1: Kill 0 energy/hp and count remaining alive
+        // Pass 1: Kill zero energy/hp creatures, count surviving
         for (uint256 i = 0; i < len; i++) {
             CreatureLib.Creature storage c = creatures[creatureIds[i]];
             if (!c.alive) continue;
@@ -376,28 +376,24 @@ library EvolutionEngine {
             }
         }
 
-        // Pass 2: Sort and kill bottom 20%
-        if (aliveCount > 0) {
-            uint256[] memory aliveIds = new uint256[](aliveCount);
-            uint256[] memory fitnesses = new uint256[](aliveCount);
+        // Pass 2: Kill bottom 20% by fitness using min-finding (no memory allocation)
+        uint256 toKill = aliveCount / 5;
+        for (uint256 k = 0; k < toKill; k++) {
+            uint256 minFitness = type(uint256).max;
+            uint256 minIdx = type(uint256).max;
 
-            uint256 idx = 0;
             for (uint256 i = 0; i < len; i++) {
                 CreatureLib.Creature storage c = creatures[creatureIds[i]];
-                if (c.alive) {
-                    aliveIds[idx] = c.id;
-                    fitnesses[idx] = CreatureLib.fitness(c);
-                    idx++;
+                if (!c.alive) continue;
+                uint256 f = CreatureLib.fitness(c);
+                if (f < minFitness) {
+                    minFitness = f;
+                    minIdx = i;
                 }
             }
 
-            if (aliveCount > 1) {
-                _quickSort(aliveIds, fitnesses, 0, int256(aliveCount - 1));
-            }
-
-            uint256 toKill = aliveCount / 5; // bottom 20%
-            for (uint256 i = 0; i < toKill; i++) {
-                uint256 killId = aliveIds[i];
+            if (minIdx != type(uint256).max) {
+                uint256 killId = creatureIds[minIdx];
                 creatures[killId].alive = false;
                 emit CreatureDied(0, killId);
             }

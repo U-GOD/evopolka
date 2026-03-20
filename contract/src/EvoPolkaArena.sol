@@ -119,6 +119,11 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
         uint256 amount
     );
 
+    modifier arenaExists(uint256 arenaId) {
+        require(arenaId > 0 && arenaId < nextArenaId, "Arena does not exist");
+        _;
+    }
+
     constructor() Ownable(msg.sender) {
         nextArenaId = 1;
         nextCreatureId = 1;
@@ -168,7 +173,7 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
     /// @notice Players join and spawn their initial creatures
     function joinArena(
         uint256 arenaId
-    ) external payable nonReentrant whenNotPaused {
+    ) external payable nonReentrant whenNotPaused arenaExists(arenaId) {
         Arena storage arena = arenas[arenaId];
         require(arena.state == ArenaState.LOBBY, "Not in LOBBY state");
         require(msg.value == arena.stakePerPlayer, "Incorrect stake amount");
@@ -187,7 +192,7 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
     }
 
     /// @notice Start the arena once enough players have joined
-    function startArena(uint256 arenaId) external {
+    function startArena(uint256 arenaId) external arenaExists(arenaId) {
         Arena storage arena = arenas[arenaId];
         require(arena.state == ArenaState.LOBBY, "Not in LOBBY state");
         require(arenaPlayerCount[arenaId] >= 2, "Need at least 2 players");
@@ -308,7 +313,7 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
     /// @notice Trigger a new evolution round if rules allow
     function runEvolutionRound(
         uint256 arenaId
-    ) external whenNotPaused nonReentrant {
+    ) external whenNotPaused nonReentrant arenaExists(arenaId) {
         Arena storage arena = arenas[arenaId];
         require(arena.state == ArenaState.ACTIVE, "Not in ACTIVE state");
         require(
@@ -326,7 +331,7 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
     /// @notice Continue a partially executed round if it ran out of gas
     function continueRound(
         uint256 arenaId
-    ) external whenNotPaused nonReentrant {
+    ) external whenNotPaused nonReentrant arenaExists(arenaId) {
         Arena storage arena = arenas[arenaId];
         require(arena.state == ArenaState.EVOLVING, "Not in EVOLVING state");
 
@@ -566,16 +571,12 @@ contract EvoPolkaArena is ReentrancyGuard, Ownable, Pausable {
     }
 
     /// @notice Trigger a disaster to shake up the arena
-    function triggerDisaster(uint256 arenaId, uint8 disasterType) external nonReentrant whenNotPaused {
+    function triggerDisaster(uint256 arenaId, uint8 disasterType) external nonReentrant whenNotPaused arenaExists(arenaId) {
         Arena storage arena = arenas[arenaId];
         require(
             arena.state == ArenaState.ACTIVE || arena.state == ArenaState.EVOLVING,
             "Not active"
         );
-        require(arena.roundNumber > 0, "No rounds yet");
-
-        // Prevent spam - only allow every 5 rounds
-        require(arena.roundNumber % 5 == 0, "Disaster cooldown");
 
         if (disasterType == uint8(DisasterType.ASTEROID)) {
             _asteroidStrike(arenaId);
